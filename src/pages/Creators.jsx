@@ -8,29 +8,33 @@ import FilterDropdown from '../components/common/FilterDropdown';
 import DataTable from '../components/common/DataTable';
 import KPICard from '../components/common/KPICard';
 import { Users, Layers, FileVideo, ShoppingCart, ExternalLink, ArrowRight } from 'lucide-react';
+import { usePortal } from '../context/PortalContext';
 import './Creators.css';
 
 export default function Creators() {
   const navigate = useNavigate();
+  const { portal, currentConfig, isBrandConnect } = usePortal();
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
   const [campaignCountFilter, setCampaignCountFilter] = useState('');
 
-  // Enrich creators with overall metrics
+  // Enrich creators with metrics strictly for active portal with zero cross-portal linkage
   const enrichedCreators = useMemo(() => {
-    return creators.map(c => {
-      const metrics = getCreatorOverallMetrics(c.id);
-      return {
-        ...c,
-        campaignsCount: metrics.campaignsCount,
-        contentCount: metrics.contentCount,
-        views: metrics.views,
-        clicks: metrics.clicks,
-        sales: metrics.sales,
-        orders: metrics.orders,
-      };
-    });
-  }, []);
+    return creators
+      .map(c => {
+        const metrics = getCreatorOverallMetrics(c.id, portal);
+        return {
+          ...c,
+          campaignsCount: metrics.campaignsCount,
+          contentCount: metrics.contentCount,
+          views: metrics.views,
+          clicks: metrics.clicks,
+          sales: metrics.sales,
+          orders: metrics.orders,
+        };
+      })
+      .filter(c => c.campaignsCount > 0);
+  }, [portal]);
 
   // Summary aggregates
   const totals = useMemo(() => {
@@ -151,7 +155,7 @@ export default function Creators() {
     },
     {
       key: 'campaignsCount',
-      label: 'Campaigns',
+      label: isBrandConnect ? 'Collabs' : 'Campaigns',
       align: 'center',
       render: (val) => (
         <span style={{
@@ -160,28 +164,28 @@ export default function Creators() {
           borderRadius: 12,
           fontSize: 'var(--text-xs)',
           fontWeight: 600,
-          background: val === 3 ? 'var(--hp-primary-subtle)' : 'var(--hp-bg-body)',
-          color: val === 3 ? 'var(--hp-primary)' : 'var(--hp-text-secondary)',
+          background: val >= 2 ? 'var(--hp-primary-subtle)' : 'var(--hp-bg-body)',
+          color: val >= 2 ? 'var(--hp-primary)' : 'var(--hp-text-secondary)',
         }}>
-          {val} {val === 1 ? 'Campaign' : 'Campaigns'}
+          {val} {val === 1 ? (isBrandConnect ? 'Collab' : 'Campaign') : (isBrandConnect ? 'Collabs' : 'Campaigns')}
         </span>
       ),
     },
     {
       key: 'contentCount',
-      label: 'Content',
+      label: isBrandConnect ? 'Deliverables' : 'Content',
       align: 'right',
       render: (val) => val,
     },
     {
       key: 'views',
-      label: 'Total Views',
+      label: isBrandConnect ? 'Reach' : 'Total Views',
       align: 'right',
       render: (val) => formatCompactNumber(val),
     },
     {
       key: 'sales',
-      label: 'Sales Generated',
+      label: isBrandConnect ? 'Media Value' : 'Sales Generated',
       align: 'right',
       render: (val) => formatCurrency(val),
     },
@@ -208,9 +212,11 @@ export default function Creators() {
   return (
     <div className="fade-in creators-page">
       <div className="creators-page__header">
-        <h1 className="creators-page__title">Creator Analytics</h1>
+        <h1 className="creators-page__title">{currentConfig.name} Creators</h1>
         <p className="creators-page__subtitle">
-          Directory of all influencers, multi-campaign performance, total sales generated, and content insights
+          {isBrandConnect
+            ? 'Directory of creators enrolled in Brand Connect partnerships, deliverable tracking, and media reach.'
+            : 'Directory of creators enrolled in Reward Programs, multi-campaign performance, and sales attribution.'}
         </p>
       </div>
 
@@ -219,20 +225,20 @@ export default function Creators() {
         <KPICard
           icon={Users}
           label="Total Influencers"
-          value={creators.length}
-          change="Across all campaigns"
+          value={enrichedCreators.length}
+          change={`Enrolled in ${currentConfig.name}`}
         />
         <KPICard
           icon={FileVideo}
-          label="Total Content Generated"
+          label={isBrandConnect ? 'Total Deliverables' : 'Total Content Generated'}
           value={formatNumber(totals.content)}
           change="Reels & Videos"
         />
         <KPICard
           icon={ShoppingCart}
-          label="Total Sales Driven"
+          label={isBrandConnect ? 'Total Media Value Driven' : 'Total Sales Driven'}
           value={formatCurrency(totals.sales)}
-          change="Catalog revenue"
+          change={isBrandConnect ? 'Brand collab value' : 'Catalog revenue'}
           positive={true}
         />
       </div>

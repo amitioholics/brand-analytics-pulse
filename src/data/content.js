@@ -90,9 +90,14 @@ export function getAllContent() {
   if (_allContent) return _allContent;
 
   const campaignDates = {
+    // Reward Program
     camp_001: { start: '2026-09-01', end: '2026-09-30' },
     camp_002: { start: '2026-08-15', end: '2026-09-30' },
     camp_003: { start: '2026-08-01', end: '2026-08-31' },
+    // Brand Connect
+    camp_bc_001: { start: '2026-09-01', end: '2026-09-30' },
+    camp_bc_002: { start: '2026-08-20', end: '2026-09-25' },
+    camp_bc_003: { start: '2026-08-01', end: '2026-08-31' },
   };
 
   _allContent = [];
@@ -110,6 +115,8 @@ export function getAllContent() {
   return _allContent;
 }
 
+import { getCampaignsByPortal } from './campaigns.js';
+
 export function getContentForCampaign(campaignId) {
   return getAllContent().filter(c => c.campaignId === campaignId);
 }
@@ -118,8 +125,13 @@ export function getContentForCreator(campaignId, creatorId) {
   return getAllContent().filter(c => c.campaignId === campaignId && c.creatorId === creatorId);
 }
 
-export function getAllContentForCreator(creatorId) {
-  return getAllContent().filter(c => c.creatorId === creatorId);
+export function getAllContentForCreator(creatorId, portal = null) {
+  let list = getAllContent().filter(c => c.creatorId === creatorId);
+  if (portal) {
+    const portalCampIds = new Set(getCampaignsByPortal(portal).map(c => c.id));
+    list = list.filter(c => portalCampIds.has(c.campaignId));
+  }
+  return list;
 }
 
 export function getContentById(contentId) {

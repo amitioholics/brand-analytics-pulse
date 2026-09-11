@@ -135,9 +135,9 @@ export function getCreatorSalesAnalytics(campaignId, creatorId) {
    Cross-Campaign Creator Analytics
    ============================================ */
 
-export function getCreatorOverallMetrics(creatorId) {
-  const content = getAllContentForCreator(creatorId);
-  const campaignsParticipated = getCampaignsForCreator(creatorId);
+export function getCreatorOverallMetrics(creatorId, portal = null) {
+  const content = getAllContentForCreator(creatorId, portal);
+  const campaignsParticipated = getCampaignsForCreator(creatorId, portal);
 
   const views = content.reduce((sum, c) => sum + c.views, 0);
   const clicks = content.reduce((sum, c) => sum + c.clicks, 0);
@@ -162,8 +162,8 @@ export function getCreatorOverallMetrics(creatorId) {
   };
 }
 
-export function getCreatorCampaignBreakdown(creatorId) {
-  const campaignsParticipated = getCampaignsForCreator(creatorId);
+export function getCreatorCampaignBreakdown(creatorId, portal = null) {
+  const campaignsParticipated = getCampaignsForCreator(creatorId, portal);
 
   return campaignsParticipated.map(rel => {
     const campaign = getCampaignById(rel.campaignId);

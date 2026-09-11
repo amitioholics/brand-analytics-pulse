@@ -1,9 +1,23 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Users, FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink } from 'lucide-react';
+import {
+  Users, FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink,
+  Play, CheckCircle2, XCircle, AlertCircle, Sparkles, Clock, Tag, Send,
+  LayoutGrid, BarChart3, Gift, Package, Truck, PackageCheck, FileText, Camera
+} from 'lucide-react';
 import { getCampaignById } from '../data/campaigns';
 import { getCampaignMetrics, getAllCreatorMetricsForCampaign, getPlatformBreakdown, getCampaignTimeSeries } from '../data/metrics';
+import { getBarterFulfillmentForCampaign } from '../data/creators';
+import { getLivePostsForCampaign, getCampaignSocialKPIs } from '../data/videoSubmissions';
 import { formatNumber, formatCurrency, formatDateRange, getInitials, getSocialUrl } from '../utils/formatters';
+import { useDeliverables } from '../context/DeliverablesContext';
+import VideoReviewModal from '../components/video/VideoReviewModal';
+import BarterFulfillmentCard from '../components/campaign/BarterFulfillmentCard';
+import BarterCreatorsModal from '../components/campaign/BarterCreatorsModal';
+import CampaignOverviewTab from '../components/campaign/CampaignOverviewTab';
+import CampaignCreatorsTab from '../components/campaign/CampaignCreatorsTab';
+import CampaignLivePostsTab from '../components/campaign/CampaignLivePostsTab';
+import CampaignPerformanceTab from '../components/campaign/CampaignPerformanceTab';
 import Breadcrumb from '../components/common/Breadcrumb';
 import KPICard from '../components/common/KPICard';
 import StatusBadge from '../components/common/StatusBadge';
@@ -19,11 +33,35 @@ import './CampaignDashboard.css';
 export default function CampaignDashboard() {
   const { campaignId } = useParams();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview'); // PRD 5 Tabs: 'overview' | 'creators' | 'content_review' | 'live_posts' | 'performance'
   const [chartMetric, setChartMetric] = useState('views');
   const [chartTime, setChartTime] = useState('all');
   const [creatorSearch, setCreatorSearch] = useState('');
   const [creatorStatusFilter, setCreatorStatusFilter] = useState('');
   const [creatorPlatformFilter, setCreatorPlatformFilter] = useState('');
+
+  const {
+    getSubmissionsByCampaign,
+    approveDraft,
+    rejectDraft,
+    submitLiveLink,
+    approveLivePost,
+    rejectLivePost,
+    approveFinalPayment,
+    rejectFinalPayment,
+  } = useDeliverables();
+  const [deliverableTab, setDeliverableTab] = useState('all');
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [modalRejectMode, setModalRejectMode] = useState(false);
+
+  // Barter Campaign Fulfillment State & Modal
+  const [isBarterModalOpen, setIsBarterModalOpen] = useState(false);
+  const [barterFilterModal, setBarterFilterModal] = useState('all'); // 'all' | 'delivered' | 'pending'
+
+  const handleOpenBarterModal = useCallback((filter = 'all') => {
+    setBarterFilterModal(filter);
+    setIsBarterModalOpen(true);
+  }, []);
 
   const campaign = getCampaignById(campaignId);
 
@@ -44,6 +82,46 @@ export default function CampaignDashboard() {
   const avgSalesPerContent = metrics.contentCount ? Math.round(metrics.sales / metrics.contentCount) : 0;
   const clickThroughRate = metrics.views > 0 ? (metrics.clicks / metrics.views) * 100 : 0;
   const avgPostsPerCreator = metrics.creatorCount ? (metrics.contentCount / metrics.creatorCount).toFixed(1) : '0';
+
+  // Barter fulfillment metrics for Brand Connect campaigns
+  const barterFulfillment = useMemo(() => {
+    if (campaign?.portalType === 'brand-connect') {
+      return getBarterFulfillmentForCampaign(campaignId);
+    }
+    return null;
+  }, [campaign, campaignId]);
+
+  // Submissions for this Brand Connect campaign
+  const campaignSubmissions = useMemo(() => {
+    return campaign?.portalType === 'brand-connect' ? getSubmissionsByCampaign(campaignId) : [];
+  }, [campaign, campaignId, getSubmissionsByCampaign]);
+
+  // Live posts and social KPIs for PRD 8.9 & 8.10
+  const livePosts = useMemo(() => {
+    return getLivePostsForCampaign(campaignId, campaignSubmissions);
+  }, [campaignId, campaignSubmissions]);
+
+  const socialKPIs = useMemo(() => {
+    return getCampaignSocialKPIs(campaignId, campaignSubmissions);
+  }, [campaignId, campaignSubmissions]);
+
+  const pendingDraftSubmissions = useMemo(() => campaignSubmissions.filter(s => s.stage === 'draft_review'), [campaignSubmissions]);
+  const awaitingLiveSubmissions = useMemo(() => campaignSubmissions.filter(s => s.stage === 'awaiting_live_link'), [campaignSubmissions]);
+  const pendingFinalSubmissions = useMemo(() => campaignSubmissions.filter(s => s.stage === 'final_review'), [campaignSubmissions]);
+  const liveApprovedSubmissions = useMemo(() => campaignSubmissions.filter(s => s.stage === 'live_approved' || s.stage === 'payment_approved'), [campaignSubmissions]);
+  const paymentApprovedSubmissions = liveApprovedSubmissions;
+  const rejectedSubmissions = useMemo(() => campaignSubmissions.filter(s => s.stage === 'draft_rejected' || s.stage === 'live_rejected'), [campaignSubmissions]);
+
+  const totalActionsNeeded = pendingDraftSubmissions.length + pendingFinalSubmissions.length;
+
+  const displayedSubmissions = useMemo(() => {
+    if (deliverableTab === 'draft_review') return pendingDraftSubmissions;
+    if (deliverableTab === 'awaiting_live_link') return awaitingLiveSubmissions;
+    if (deliverableTab === 'final_review') return pendingFinalSubmissions;
+    if (deliverableTab === 'live_approved' || deliverableTab === 'payment_approved') return liveApprovedSubmissions;
+    if (deliverableTab === 'rejected') return rejectedSubmissions;
+    return campaignSubmissions;
+  }, [deliverableTab, campaignSubmissions, pendingDraftSubmissions, awaitingLiveSubmissions, pendingFinalSubmissions, liveApprovedSubmissions, rejectedSubmissions]);
 
   // Filter creators
   const filteredCreators = useMemo(() => {
@@ -185,18 +263,66 @@ export default function CampaignDashboard() {
       label: 'Status',
       render: (val) => <StatusBadge status={val} />,
     },
+    ...(campaign?.portalType === 'brand-connect' && campaign?.isBarter ? [{
+      key: 'deliveryStatus',
+      label: 'Barter Products',
+      render: (val, row) => {
+        const isDelivered = row.productReceived || val === 'Delivered';
+        const isInTransit = val === 'In Transit';
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenBarterModal(isDelivered ? 'delivered' : 'pending');
+            }}
+            title={`Click to view barter logistics (AWB: ${row.trackingNumber || 'Pending'})`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '3px 8px',
+              borderRadius: 6,
+              fontSize: '11px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: isDelivered ? '#ecfdf5' : isInTransit ? '#eff6ff' : '#fefce8',
+              color: isDelivered ? '#047857' : isInTransit ? '#1d4ed8' : '#a16207',
+              border: `1px solid ${isDelivered ? '#a7f3d0' : isInTransit ? '#bfdbfe' : '#fef08a'}`,
+              transition: 'transform 0.15s ease',
+            }}
+          >
+            {isDelivered ? <CheckCircle2 size={12} /> : isInTransit ? <Truck size={12} /> : <Package size={12} />}
+            <span>{val || 'Processing'}</span>
+          </button>
+        );
+      },
+    }] : []),
   ];
 
   return (
     <div className="campaign-dash fade-in">
       <Breadcrumb items={[
-        { label: 'Reward Programs', to: '/campaigns' },
+        { label: campaign.portalType === 'brand-connect' ? 'Collaborations' : 'Reward Programs', to: '/campaigns' },
         { label: campaign.name },
       ]} />
 
       {/* Campaign Header */}
       <div className="campaign-dash__header">
         <div className="campaign-dash__header-info">
+          <div className="campaign-dash__portal-indicator">
+            {campaign.portalType === 'brand-connect' ? (
+              <span className="campaign-dash__portal-badge campaign-dash__portal-badge--brand">
+                <Sparkles size={13} />
+                <span>Brand Connect Collaboration</span>
+              </span>
+            ) : (
+              <span className="campaign-dash__portal-badge campaign-dash__portal-badge--reward">
+                <Gift size={13} />
+                <span>Reward Program</span>
+              </span>
+            )}
+          </div>
           <h1 className="campaign-dash__title">{campaign.name}</h1>
           <div className="campaign-dash__meta">
             <span className="campaign-dash__dates">{formatDateRange(campaign.startDate, campaign.endDate)}</span>
@@ -213,80 +339,571 @@ export default function CampaignDashboard() {
         <ExportButton />
       </div>
 
-      {/* KPI Cards */}
-      <div className="campaign-dash__kpis">
-        {kpiCards.map(card => (
-          <KPICard
-            key={card.label}
-            label={card.label}
-            value={card.value}
-            icon={card.icon}
-            accentColor={card.color}
-          />
-        ))}
-      </div>
-
-      {/* Performance Chart */}
-      <div className="campaign-dash__section">
-        <CampaignPerformanceChart
-          data={chartData}
-          selectedMetric={chartMetric}
-          selectedTime={chartTime}
-          onMetricChange={setChartMetric}
-          onTimeFilterChange={setChartTime}
-        />
-      </div>
-
-      {/* Content Summary */}
-      <div className="campaign-dash__section">
-        <ContentSummary
-          avgViewsPerContent={avgViewsPerContent}
-          avgClicksPerContent={avgClicksPerContent}
-          avgSalesPerContent={avgSalesPerContent}
-          clickThroughRate={clickThroughRate}
-          avgPostsPerCreator={avgPostsPerCreator}
-          platformBreakdown={platformBreakdown}
-        />
-      </div>
-
-      {/* Creator Performance */}
-      <div className="campaign-dash__section">
-        <div className="campaign-dash__section-header">
-          <h2 className="campaign-dash__section-title">Creator Performance</h2>
+      {/* Brand Connect: 5 Primary Tabs (PRD Section 7) */}
+      {campaign.portalType === 'brand-connect' && (
+        <div className="campaign-dash__view-switcher">
+          <button
+            type="button"
+            className={`campaign-dash__view-tab ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <FileText size={15} />
+            <span>1. Overview</span>
+          </button>
+          <button
+            type="button"
+            className={`campaign-dash__view-tab ${activeTab === 'creators' ? 'active' : ''}`}
+            onClick={() => setActiveTab('creators')}
+          >
+            <Users size={15} />
+            <span>2. Creators ({allCreators.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`campaign-dash__view-tab ${activeTab === 'content_review' ? 'active' : ''}`}
+            onClick={() => setActiveTab('content_review')}
+          >
+            <FileVideo size={15} />
+            <span>3. Content Review ({campaignSubmissions.length})</span>
+            {totalActionsNeeded > 0 && (
+              <span className="campaign-dash__view-tab-count">{totalActionsNeeded} Actions</span>
+            )}
+          </button>
+          <button
+            type="button"
+            className={`campaign-dash__view-tab ${activeTab === 'live_posts' ? 'active' : ''}`}
+            onClick={() => setActiveTab('live_posts')}
+          >
+            <Camera size={15} />
+            <span>4. Live Posts ({livePosts.length})</span>
+          </button>
+          <button
+            type="button"
+            className={`campaign-dash__view-tab ${activeTab === 'performance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('performance')}
+          >
+            <BarChart3 size={15} />
+            <span>5. Performance</span>
+          </button>
         </div>
+      )}
 
-        <div className="campaign-dash__creator-toolbar">
-          <SearchBar placeholder="Search creators..." onSearch={handleCreatorSearch} />
-          <div className="campaign-dash__creator-filters">
-            <FilterDropdown
-              label="All Status"
-              value={creatorStatusFilter}
-              onChange={setCreatorStatusFilter}
-              options={[
-                { value: 'Active', label: 'Active' },
-                { value: 'Completed', label: 'Completed' },
-              ]}
-            />
-            <FilterDropdown
-              label="All Platforms"
-              value={creatorPlatformFilter}
-              onChange={setCreatorPlatformFilter}
-              options={[
-                { value: 'Instagram', label: 'Instagram' },
-                { value: 'YouTube', label: 'YouTube' },
-              ]}
+      {/* ==============================================================
+          TAB 1: OVERVIEW (PRD 8.5)
+         ============================================================== */}
+      {campaign.portalType === 'brand-connect' && activeTab === 'overview' && (
+        <CampaignOverviewTab
+          campaign={campaign}
+          fulfillment={barterFulfillment}
+          onOpenBarterModal={handleOpenBarterModal}
+          campaignSubmissions={campaignSubmissions}
+          onNavigateTab={setActiveTab}
+        />
+      )}
+
+      {/* ==============================================================
+          TAB 2: CREATORS (PRD 8.6)
+         ============================================================== */}
+      {campaign.portalType === 'brand-connect' && activeTab === 'creators' && (
+        <CampaignCreatorsTab
+          creators={allCreators}
+          campaign={campaign}
+          campaignSubmissions={campaignSubmissions}
+          onOpenBarterModal={handleOpenBarterModal}
+        />
+      )}
+
+      {/* ==============================================================
+          TAB 4: LIVE POSTS (PRD 8.9)
+         ============================================================== */}
+      {campaign.portalType === 'brand-connect' && activeTab === 'live_posts' && (
+        <CampaignLivePostsTab
+          livePosts={livePosts}
+          campaign={campaign}
+        />
+      )}
+
+      {/* ==============================================================
+          TAB 5: PERFORMANCE (PRD 8.10)
+         ============================================================== */}
+      {campaign.portalType === 'brand-connect' && activeTab === 'performance' && (
+        <CampaignPerformanceTab
+          campaign={campaign}
+          socialKPIs={socialKPIs}
+          chartData={chartData}
+          platformBreakdown={platformBreakdown}
+          allCreators={allCreators}
+        />
+      )}
+
+      {/* ==============================================================
+          REWARD PROGRAM: Standard Affiliate View
+         ============================================================== */}
+      {campaign.portalType === 'reward-program' && (
+        <>
+          <div className="campaign-dash__kpis">
+            {kpiCards.map(card => (
+              <KPICard
+                key={card.label}
+                label={card.label}
+                value={card.value}
+                icon={card.icon}
+                accentColor={card.color}
+              />
+            ))}
+          </div>
+
+          <div className="campaign-dash__section">
+            <CampaignPerformanceChart
+              data={chartData}
+              selectedMetric={chartMetric}
+              selectedTime={chartTime}
+              onMetricChange={setChartMetric}
+              onTimeFilterChange={setChartTime}
             />
           </div>
-        </div>
 
-        <DataTable
-          columns={creatorColumns}
-          data={filteredCreators}
-          onRowClick={(row) => navigate(`/campaigns/${campaignId}/creators/${row.creatorId || row.id}`)}
-          emptyMessage="No creators have joined this campaign yet."
-          pageSize={25}
+          <div className="campaign-dash__section">
+            <ContentSummary
+              avgViewsPerContent={avgViewsPerContent}
+              avgClicksPerContent={avgClicksPerContent}
+              avgSalesPerContent={avgSalesPerContent}
+              clickThroughRate={clickThroughRate}
+              avgPostsPerCreator={avgPostsPerCreator}
+              platformBreakdown={platformBreakdown}
+            />
+          </div>
+        </>
+      )}
+
+      {/* ==============================================================
+          TAB 3: CONTENT REVIEW STUDIO (PRD 8.7)
+         ============================================================== */}
+      {((campaign.portalType === 'brand-connect' && activeTab === 'content_review') || campaign.portalType === 'reward-program') && (
+        <div className="campaign-dash__section campaign-dash__section--deliverables">
+          <div className="campaign-dash__deliverables-header">
+            <div>
+              <div className="campaign-dash__deliverables-title-row">
+                <h2 className="campaign-dash__section-title">
+                  Creator Video Deliverables & Two-Stage QA
+                </h2>
+                {totalActionsNeeded > 0 && (
+                  <span className="campaign-dash__pending-pulse-badge">
+                    <Clock size={13} />
+                    {totalActionsNeeded} Decisions Awaiting
+                  </span>
+                )}
+              </div>
+              <p className="campaign-dash__section-subtext">
+                Two-stage QA process: <strong>Stage 1</strong> reviews creator video drafts; <strong>Stage 2</strong> verifies the live Instagram Reel / YouTube URL before final approval.
+              </p>
+            </div>
+
+            <div className="campaign-dash__deliverables-actions">
+              <button
+                type="button"
+                className="campaign-dash__view-all-approvals-btn"
+                onClick={() => navigate('/approvals')}
+                title="Open Global Video Approvals Studio"
+              >
+                <span>Central QA Studio</span>
+                <ExternalLink size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Deliverables Tabs */}
+          <div className="campaign-dash__deliverable-tabs">
+            <button
+              type="button"
+              className={`campaign-dash__dtab ${deliverableTab === 'all' ? 'active' : ''}`}
+              onClick={() => setDeliverableTab('all')}
+            >
+              All Deliverables ({campaignSubmissions.length})
+            </button>
+            <button
+              type="button"
+              className={`campaign-dash__dtab ${deliverableTab === 'draft_review' ? 'active' : ''}`}
+              onClick={() => setDeliverableTab('draft_review')}
+            >
+              1. Draft QA ({pendingDraftSubmissions.length})
+            </button>
+            <button
+              type="button"
+              className={`campaign-dash__dtab ${deliverableTab === 'awaiting_live_link' ? 'active' : ''}`}
+              onClick={() => setDeliverableTab('awaiting_live_link')}
+            >
+              2. Awaiting Live Post ({awaitingLiveSubmissions.length})
+            </button>
+            <button
+              type="button"
+              className={`campaign-dash__dtab ${deliverableTab === 'final_review' ? 'active' : ''}`}
+              onClick={() => setDeliverableTab('final_review')}
+            >
+              3. Live Post QA ({pendingFinalSubmissions.length})
+            </button>
+            <button
+              type="button"
+              className={`campaign-dash__dtab ${deliverableTab === 'live_approved' ? 'active' : ''}`}
+              onClick={() => setDeliverableTab('live_approved')}
+            >
+              4. Live Posts Approved ({liveApprovedSubmissions.length})
+            </button>
+            <button
+              type="button"
+              className={`campaign-dash__dtab ${deliverableTab === 'rejected' ? 'active' : ''}`}
+              onClick={() => setDeliverableTab('rejected')}
+            >
+              Rejections ({rejectedSubmissions.length})
+            </button>
+          </div>
+
+          {/* Submissions Grid or Empty State */}
+          {displayedSubmissions.length === 0 ? (
+            <div className="campaign-dash__deliverables-empty">
+              <FileVideo size={36} />
+              <h4>No deliverables in this category</h4>
+              <p>No video submissions match the "{deliverableTab}" filter for this campaign.</p>
+            </div>
+          ) : (
+            <div className="campaign-dash__deliverables-grid">
+              {displayedSubmissions.map(sub => {
+                const isDraftPending = sub.stage === 'draft_review';
+                const isFinalPending = sub.stage === 'final_review';
+                const isApproved = sub.stage === 'live_approved' || sub.stage === 'payment_approved';
+                const isAwaitingLive = sub.stage === 'awaiting_live_link';
+                const isRejected = sub.stage === 'draft_rejected' || sub.stage === 'live_rejected';
+
+                return (
+                  <div key={sub.id} className="deliverable-card">
+                    {/* Media Preview Box */}
+                    <div
+                      className="deliverable-card__media"
+                      onClick={() => {
+                        setSelectedSubmission(sub);
+                        setModalRejectMode(false);
+                      }}
+                    >
+                      <video
+                        src={sub.videoUrl}
+                        preload="metadata"
+                        muted
+                        playsInline
+                        className="deliverable-card__video-preview"
+                      />
+                      <div className="deliverable-card__overlay">
+                        <div className="deliverable-card__play-btn">
+                          <Play size={20} fill="#fff" />
+                        </div>
+                        <span className="deliverable-card__hover-text">Watch & Review</span>
+                      </div>
+
+                      <div className="deliverable-card__duration-badge">
+                        {sub.duration}
+                      </div>
+
+                      <div className="deliverable-card__format-tag">
+                        {sub.deliverableType}
+                      </div>
+
+                      <div className="deliverable-card__status-pos">
+                        <span className={`deliv-status-pill deliv-status-pill--${sub.stage || 'draft-review'}`}>
+                          {isApproved && <CheckCircle2 size={12} />}
+                          {isRejected && <XCircle size={12} />}
+                          {isDraftPending && <Clock size={12} />}
+                          {isFinalPending && <Sparkles size={12} />}
+                          {isAwaitingLive && <Send size={12} />}
+                          <span>{sub.status}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Body Info */}
+                    <div className="deliverable-card__body">
+                      <div className="deliverable-card__creator-row">
+                        <div
+                          className="deliverable-card__avatar"
+                          style={{ background: sub.creatorAvatarColor || 'var(--hp-primary)' }}
+                        >
+                          {getInitials(sub.creatorName)}
+                        </div>
+                        <div className="deliverable-card__creator-meta">
+                          <div className="deliverable-card__creator-name">{sub.creatorName}</div>
+                          <div className="deliverable-card__creator-handle">{sub.creatorHandle} • {sub.creatorPlatform}</div>
+                        </div>
+                        <span className="deliverable-card__format-tag">
+                          {sub.deliverableType}
+                        </span>
+                      </div>
+
+                      <h4 className="deliverable-card__title" title={sub.videoTitle}>
+                        {sub.videoTitle}
+                      </h4>
+
+                      {sub.caption && (
+                        <p className="deliverable-card__caption" title={sub.caption}>
+                          {sub.caption}
+                        </p>
+                      )}
+
+                      {/* Tagged Products */}
+                      {sub.taggedProducts?.length > 0 && (
+                        <div className="deliverable-card__products">
+                          <span className="deliverable-card__products-label">
+                            <Tag size={12} /> {sub.taggedProducts.length} Products:
+                          </span>
+                          <div className="deliverable-card__products-list">
+                            {sub.taggedProducts.map((p, idx) => (
+                              <span key={idx} className="deliverable-card__product-chip">
+                                <span className="deliverable-card__product-name">{p.name}</span>
+                                <span className="deliverable-card__product-price">{p.price}</span>
+                                <span className="deliverable-card__product-brand">{p.brand}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Live Link Box if available */}
+                      {sub.livePostUrl && (
+                        <div className="deliverable-card__live-link-pill" onClick={(e) => e.stopPropagation()}>
+                          <span>Live Link:</span>
+                          <a
+                            href={sub.livePostUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="deliverable-card__live-link-url"
+                          >
+                            <span>{sub.livePostUrl}</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Rejection Details Callout */}
+                      {isRejected && (sub.draftRejectionReason || sub.liveRejectionReason) && (
+                        <div className="deliverable-card__reason-callout deliverable-card__reason-callout--rejected">
+                          <div className="deliverable-card__reason-header">
+                            <AlertCircle size={14} />
+                            <strong>{sub.stage === 'draft_rejected' ? 'Draft Rejection:' : 'Live Post Rejection:'}</strong>
+                          </div>
+                          <p className="deliverable-card__reason-text">{sub.draftRejectionReason || sub.liveRejectionReason}</p>
+                          {(sub.draftReviewNotes || sub.liveReviewNotes) && (
+                            <div className="deliverable-card__reason-notes">
+                              <span>Note:</span> {sub.draftReviewNotes || sub.liveReviewNotes}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Approved Details Callout */}
+                      {isApproved && (
+                        <div className="deliverable-card__reason-callout deliverable-card__reason-callout--approved">
+                          <div className="deliverable-card__reason-header">
+                            <CheckCircle2 size={14} />
+                            <strong>Live Post Approved</strong>
+                          </div>
+                          <p className="deliverable-card__reason-text">
+                            {sub.liveReviewNotes || 'Live post verified and approved.'}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Awaiting Live Callout */}
+                      {isAwaitingLive && (
+                        <div className="deliverable-card__reason-callout deliverable-card__reason-callout--awaiting">
+                          <div className="deliverable-card__reason-header">
+                            <Send size={14} />
+                            <strong>Draft Approved!</strong>
+                          </div>
+                          <p className="deliverable-card__reason-text">
+                            Waiting for creator to publish on Instagram/YouTube and submit live URL.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Actions Bar */}
+                      <div className="deliverable-card__actions">
+                        {/* Stage 1: Draft Pending */}
+                        {isDraftPending && (
+                          <>
+                            <button
+                              type="button"
+                              className="deliverable-card__review-btn"
+                              onClick={() => {
+                                setSelectedSubmission(sub);
+                                setModalRejectMode(false);
+                              }}
+                            >
+                              <Play size={14} fill="currentColor" />
+                              <span>Review Draft</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="deliverable-card__approve-btn"
+                              onClick={() => approveDraft(sub.id, 'Approved via Campaign Studio')}
+                              title="Quick Approve Draft"
+                            >
+                              <CheckCircle2 size={14} />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="deliverable-card__reject-btn"
+                              onClick={() => {
+                                setSelectedSubmission(sub);
+                                setModalRejectMode(true);
+                              }}
+                              title="Reject Draft with Reason"
+                            >
+                              <XCircle size={14} />
+                              <span>Reject</span>
+                            </button>
+                          </>
+                        )}
+
+                        {/* Stage 2: Final Live Review */}
+                        {isFinalPending && (
+                          <>
+                            <button
+                              type="button"
+                              className="deliverable-card__review-btn"
+                              style={{ background: '#86198f' }}
+                              onClick={() => {
+                                setSelectedSubmission(sub);
+                                setModalRejectMode(false);
+                              }}
+                            >
+                              <Sparkles size={14} />
+                              <span>Review Live Post</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="deliverable-card__approve-btn"
+                              onClick={() => approveLivePost(sub.id, 'Live post verified and approved.')}
+                              title="Approve Live Post"
+                            >
+                              <CheckCircle2 size={14} />
+                              <span>Approve</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="deliverable-card__reject-btn"
+                              onClick={() => {
+                                setSelectedSubmission(sub);
+                                setModalRejectMode(true);
+                              }}
+                              title="Reject Live Post with Reason"
+                            >
+                              <XCircle size={14} />
+                              <span>Reject</span>
+                            </button>
+                          </>
+                        )}
+
+                        {/* Awaiting Live Link (Creator will post on their end) */}
+                        {isAwaitingLive && (
+                          <button
+                            type="button"
+                            className="deliverable-card__re-review-btn"
+                            onClick={() => {
+                              setSelectedSubmission(sub);
+                              setModalRejectMode(false);
+                            }}
+                          >
+                            <span>View Draft Details</span>
+                          </button>
+                        )}
+
+                        {/* Completed / Rejected */}
+                        {(isApproved || isRejected) && (
+                          <button
+                            type="button"
+                            className="deliverable-card__re-review-btn"
+                            onClick={() => {
+                              setSelectedSubmission(sub);
+                              setModalRejectMode(false);
+                            }}
+                          >
+                            View Decision & Details
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Creator Performance for Reward Program */}
+      {campaign.portalType === 'reward-program' && (
+        <div className="campaign-dash__section">
+          <div className="campaign-dash__section-header">
+            <h2 className="campaign-dash__section-title">Creator Performance</h2>
+          </div>
+
+          <div className="campaign-dash__creator-toolbar">
+            <SearchBar placeholder="Search creators..." onSearch={handleCreatorSearch} />
+            <div className="campaign-dash__creator-filters">
+              <FilterDropdown
+                label="All Status"
+                value={creatorStatusFilter}
+                onChange={setCreatorStatusFilter}
+                options={[
+                  { value: 'Active', label: 'Active' },
+                  { value: 'Completed', label: 'Completed' },
+                ]}
+              />
+              <FilterDropdown
+                label="All Platforms"
+                value={creatorPlatformFilter}
+                onChange={setCreatorPlatformFilter}
+                options={[
+                  { value: 'Instagram', label: 'Instagram' },
+                  { value: 'YouTube', label: 'YouTube' },
+                ]}
+              />
+            </div>
+          </div>
+
+          <DataTable
+            columns={creatorColumns}
+            data={filteredCreators}
+            onRowClick={(row) => navigate(`/campaigns/${campaignId}/creators/${row.creatorId || row.id}`)}
+            emptyMessage="No creators have joined this campaign yet."
+            pageSize={25}
+          />
+        </div>
+      )}
+
+      {/* Video Review Studio Modal */}
+      {selectedSubmission && (
+        <VideoReviewModal
+          submission={selectedSubmission}
+          onClose={() => setSelectedSubmission(null)}
+          onApproveDraft={approveDraft}
+          onRejectDraft={rejectDraft}
+          onApproveLivePost={approveLivePost}
+          onRejectLivePost={rejectLivePost}
+          onApproveFinalPayment={approveFinalPayment}
+          onRejectFinalPayment={rejectFinalPayment}
+          initialRejectMode={modalRejectMode}
         />
-      </div>
+      )}
+
+      {/* Barter Creators & Logistics Modal */}
+      {isBarterModalOpen && barterFulfillment && (
+        <BarterCreatorsModal
+          isOpen={isBarterModalOpen}
+          onClose={() => setIsBarterModalOpen(false)}
+          campaign={campaign}
+          fulfillment={barterFulfillment}
+          initialFilter={barterFilterModal}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,17 @@
 .dashboard__header {
   margin-bottom: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.dashboard__header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .dashboard__title {
@@ -7,6 +19,60 @@
   font-weight: 800;
   color: var(--hp-text-primary);
   letter-spacing: -0.02em;
+}
+
+.dashboard__subtitle {
+  font-size: var(--text-sm);
+  color: var(--hp-text-secondary);
+  margin-top: 4px;
+}
+
+.dashboard__mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard__mode-pill--brand-connect {
+  background: #f2edfc;
+  color: #6538ea;
+  border: 1px solid #e1d6f8;
+}
+
+.dashboard__mode-pill--reward-program {
+  background: #e8fbf3;
+  color: #059669;
+  border: 1px solid #c0f2de;
+}
+
+.dashboard__switch-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1.5px solid var(--hp-border);
+  border-radius: 12px;
+  color: var(--hp-text-primary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(30, 26, 56, 0.04);
+}
+
+.dashboard__switch-toggle-btn:hover {
+  background: var(--hp-bg);
+  border-color: var(--hp-primary-light);
+  color: var(--hp-primary);
+  box-shadow: 0 2px 6px rgba(101, 56, 234, 0.1);
+  transform: translateY(-1px);
 }
 
 /* HaulPack Banner */
@@ -23,6 +89,19 @@
   box-shadow: 0 8px 24px rgba(38, 31, 71, 0.18);
   position: relative;
   overflow: hidden;
+  transition: all var(--transition-slow);
+}
+
+.dashboard__haulpack-banner--brand-connect {
+  background: linear-gradient(135deg, #241d44 0%, #37286a 50%, #5839ab 100%);
+}
+
+.dashboard__haulpack-banner--reward-program {
+  background: linear-gradient(135deg, #153229 0%, #1a4d3a 50%, #206d4e 100%);
+}
+
+.dashboard__haulpack-banner--reward-program::after {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(16, 185, 129, 0) 70%) !important;
 }
 
 .dashboard__haulpack-banner::after {
@@ -227,6 +306,17 @@
   flex-shrink: 0;
 }
 
+.dashboard__campaign-icon--brand {
+  background: #f2edfc;
+  color: #6538ea;
+}
+
+.dashboard__section-subtitle {
+  font-size: var(--text-xs);
+  color: var(--hp-text-secondary);
+  margin-top: 2px;
+}
+
 .dashboard__campaign-name {
   font-weight: 600;
   font-size: var(--text-base);
@@ -385,3 +475,84 @@
     margin-top: 4px;
   }
 }
+
+/* Pending Video Deliverables Alert Banner */
+.dashboard__approval-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fde68a;
+  border-radius: var(--radius-xl);
+  padding: 16px 20px;
+  margin-bottom: var(--space-6);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.08);
+}
+
+.dashboard__approval-alert-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard__approval-alert-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f59e0b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.dashboard__approval-alert-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: #78350f;
+  margin-bottom: 2px;
+}
+
+.dashboard__approval-alert-desc {
+  font-size: var(--text-xs);
+  color: #92400e;
+  line-height: 1.4;
+  max-width: 680px;
+}
+
+.dashboard__approval-alert-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #78350f;
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(120, 53, 15, 0.25);
+}
+
+.dashboard__approval-alert-btn:hover {
+  background: #5b2809;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(120, 53, 15, 0.35);
+}
+
+@media (max-width: 768px) {
+  .dashboard__approval-alert {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard__approval-alert-btn {
+    justify-content: center;
+  }
+}
+

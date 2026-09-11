@@ -14,6 +14,7 @@ import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
 import ContentDetailDrawer from '../components/content/ContentDetailDrawer';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { usePortal } from '../context/PortalContext';
 import './CreatorProfilePage.css';
 
 const CHART_METRICS = [
@@ -25,6 +26,7 @@ const CHART_METRICS = [
 export default function CreatorProfilePage() {
   const { creatorId } = useParams();
   const navigate = useNavigate();
+  const { portal, currentConfig, isBrandConnect } = usePortal();
 
   const [activeChartMetric, setActiveChartMetric] = useState('views');
   const [contentSearch, setContentSearch] = useState('');
@@ -32,9 +34,9 @@ export default function CreatorProfilePage() {
   const [selectedContent, setSelectedContent] = useState(null);
 
   const creator = useMemo(() => getCreatorById(creatorId), [creatorId]);
-  const overallMetrics = useMemo(() => getCreatorOverallMetrics(creatorId), [creatorId]);
-  const campaignBreakdown = useMemo(() => getCreatorCampaignBreakdown(creatorId), [creatorId]);
-  const allContent = useMemo(() => getAllContentForCreator(creatorId), [creatorId]);
+  const overallMetrics = useMemo(() => getCreatorOverallMetrics(creatorId, portal), [creatorId, portal]);
+  const campaignBreakdown = useMemo(() => getCreatorCampaignBreakdown(creatorId, portal), [creatorId, portal]);
+  const allContent = useMemo(() => getAllContentForCreator(creatorId, portal), [creatorId, portal]);
 
   // Chart data comparing each campaign
   const campaignComparisonData = useMemo(() => {
@@ -93,7 +95,7 @@ export default function CreatorProfilePage() {
             <h1 className="creator-profile-page__name">{creator.name}</h1>
             <span className="creator-profile-page__badge">
               <Layers size={14} />
-              Participated in {overallMetrics.campaignsCount} Campaigns
+              Participated in {overallMetrics.campaignsCount} {overallMetrics.campaignsCount === 1 ? (isBrandConnect ? 'Collab' : 'Campaign') : (isBrandConnect ? 'Collabs' : 'Campaigns')}
             </span>
           </div>
           <div className="creator-profile-page__sub">
@@ -142,36 +144,36 @@ export default function CreatorProfilePage() {
       <div className="creator-profile-page__kpis">
         <KPICard
           icon={Layers}
-          label="Campaigns Participated"
-          value={`${overallMetrics.campaignsCount} Campaigns`}
-          change={`${overallMetrics.campaignsCount} / 3 active`}
+          label={isBrandConnect ? 'Collabs Participated' : 'Campaigns Participated'}
+          value={`${overallMetrics.campaignsCount} ${overallMetrics.campaignsCount === 1 ? (isBrandConnect ? 'Collab' : 'Campaign') : (isBrandConnect ? 'Collabs' : 'Campaigns')}`}
+          change={`In ${currentConfig.name}`}
           positive={true}
         />
         <KPICard
           icon={FileVideo}
-          label="Total Content Created"
+          label={isBrandConnect ? 'Total Deliverables' : 'Total Content Created'}
           value={formatNumber(overallMetrics.contentCount)}
-          change="Across all campaigns"
+          change={`In ${currentConfig.name}`}
         />
         <KPICard
           icon={Eye}
-          label="Total Views"
+          label={isBrandConnect ? 'Total Reach' : 'Total Views'}
           value={formatNumber(overallMetrics.views)}
           change={`Avg ${(overallMetrics.avgViewsPerContent / 1000).toFixed(1)}k / post`}
           positive={true}
         />
         <KPICard
           icon={MousePointerClick}
-          label="Total Clicks"
+          label={isBrandConnect ? 'Creator Engagements' : 'Total Clicks'}
           value={formatNumber(overallMetrics.clicks)}
           change={`CTR: ${overallMetrics.conversionRate}%`}
           positive={true}
         />
         <KPICard
           icon={ShoppingCart}
-          label="Total Sales Generated"
+          label={isBrandConnect ? 'Total Media Value' : 'Total Sales Generated'}
           value={formatCurrency(overallMetrics.sales)}
-          change="Driven across campaigns"
+          change={`In ${currentConfig.name}`}
           positive={true}
         />
       </div>

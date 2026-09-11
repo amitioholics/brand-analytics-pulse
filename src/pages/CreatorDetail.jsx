@@ -117,7 +117,7 @@ export default function CreatorDetail() {
   return (
     <div className="creator-detail fade-in">
       <Breadcrumb items={[
-        { label: 'Reward Programs', to: '/campaigns' },
+        { label: campaign.portalType === 'brand-connect' ? 'Collaborations' : 'Reward Programs', to: '/campaigns' },
         { label: campaign.name, to: `/campaigns/${campaignId}` },
         { label: 'Creators', to: `/campaigns/${campaignId}` },
         { label: creator.name },

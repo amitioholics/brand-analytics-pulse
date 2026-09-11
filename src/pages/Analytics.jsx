@@ -14,6 +14,7 @@ import {
   Users, FileVideo, Eye, ShoppingCart, MousePointerClick, TrendingUp,
   ArrowUpRight, Sparkles, Smartphone, Video, Award, Target
 } from 'lucide-react';
+import { usePortal } from '../context/PortalContext';
 import './Analytics.css';
 
 const PLATFORM_COLORS = {
@@ -31,16 +32,21 @@ const METRIC_TABS = [
 const TIME_RANGES = ['All Time', 'Last 30 Days', 'Last 14 Days', 'Last 7 Days'];
 
 export default function Analytics() {
+  const { portal, currentConfig, isBrandConnect } = usePortal();
   const [selectedMetric, setSelectedMetric] = useState('views');
   const [timeRange, setTimeRange] = useState('All Time');
 
-  // Aggregated campaign metrics
+  // Aggregated campaign metrics for current portal
+  const portalCampaigns = useMemo(() => {
+    return campaigns.filter(c => c.portalType === portal);
+  }, [portal]);
+
   const allMetrics = useMemo(() => {
-    return campaigns.map(c => ({
+    return portalCampaigns.map(c => ({
       ...c,
       ...getCampaignMetrics(c.id),
     }));
-  }, []);
+  }, [portalCampaigns]);
 
   // Top level totals
   const totals = useMemo(() => {
@@ -72,7 +78,7 @@ export default function Analytics() {
   // Combined platform breakdown across campaigns
   const platformData = useMemo(() => {
     const combined = {};
-    campaigns.forEach(c => {
+    portalCampaigns.forEach(c => {
       const bd = getPlatformBreakdown(c.id);
       bd.forEach(p => {
         if (!combined[p.platform]) {
@@ -100,7 +106,7 @@ export default function Analytics() {
       contentShare: totalContentCombined > 0 ? ((p.count / totalContentCombined) * 100).toFixed(1) : 0,
       ctr: p.views > 0 ? ((p.clicks / p.views) * 100).toFixed(2) : 0,
     }));
-  }, []);
+  }, [portalCampaigns]);
 
   // Campaign comparison data for dynamic metric switcher
   const campaignCompareData = useMemo(() => {
@@ -135,9 +141,9 @@ export default function Analytics() {
         <div className="analytics__header-left">
           <div className="analytics__badge">
             <Sparkles size={14} />
-            <span>Cross-Program Brand Intelligence</span>
+            <span>{currentConfig.name} • Intelligence</span>
           </div>
-          <h1 className="analytics__title">Brand Analytics & Performance</h1>
+          <h1 className="analytics__title">{currentConfig.name} Analytics</h1>
           <p className="analytics__subtitle">
             Holistic cross-campaign performance, creator distribution, audience funnel conversion, and platform revenue.
           </p>
