@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink, LinkIcon, ArrowUpRight } from 'lucide-react';
+import { FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink, LinkIcon, ArrowUpRight, Package, TrendingUp, BarChart2 } from 'lucide-react';
 import { getCampaignById } from '../data/campaigns';
 import { getCreatorById, getCampaignCreatorRelation } from '../data/creators';
 import { getContentForCreator } from '../data/content';
 import { getCreatorCampaignMetrics, getCreatorSalesAnalytics } from '../data/metrics';
+import { productSalesRecords, getProductById } from '../data/productSales';
 import { formatNumber, formatCurrency, formatPercent, formatDate } from '../utils/formatters';
 import Breadcrumb from '../components/common/Breadcrumb';
 import KPICard from '../components/common/KPICard';
@@ -24,6 +25,7 @@ export default function CreatorDetail() {
   const [drawerContent, setDrawerContent] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // cards | table
   const [contentSort, setContentSort] = useState('views');
+  const [detailPerfTab, setDetailPerfTab] = useState('content'); // 'content' | 'product'
 
   const campaign = getCampaignById(campaignId);
   const creator = getCreatorById(creatorId);
@@ -40,6 +42,27 @@ export default function CreatorDetail() {
   const metrics = getCreatorCampaignMetrics(campaignId, creatorId);
   const content = getContentForCreator(campaignId, creatorId);
   const salesAnalytics = getCreatorSalesAnalytics(campaignId, creatorId);
+
+  // Product sales for THIS creator in THIS campaign
+  const campaignProductRows = useMemo(() => {
+    return productSalesRecords
+      .filter(r => r.campaignId === campaignId && r.creatorId === creatorId)
+      .map(r => {
+        const prod = getProductById(r.productId);
+        return {
+          ...r,
+          productName: prod ? prod.name : 'Unknown',
+          productCategory: prod ? prod.category : '-',
+          salesValue: prod ? prod.pricePerUnit * r.unitsSold : 0,
+        };
+      });
+  }, [campaignId, creatorId]);
+
+  const campaignProductTotals = useMemo(() => ({
+    unitsSold:  campaignProductRows.reduce((s, r) => s + r.unitsSold,  0),
+    salesValue: campaignProductRows.reduce((s, r) => s + r.salesValue, 0),
+    orders:     campaignProductRows.reduce((s, r) => s + r.orders,     0),
+  }), [campaignProductRows]);
 
   // Build chart data with all metrics per date
   const chartDataRaw = {};
@@ -159,29 +182,101 @@ export default function CreatorDetail() {
         <CreatorPerformanceChart data={chartData} />
       </div>
 
-      {/* Sales & Reward Analytics side by side */}
+      {/* Sales & Reward Analytics — with Product Sales toggle */}
       <div className="creator-detail__analytics-row">
-        {/* Sales Analytics */}
+        {/* LEFT: Sales Analytics / Product Sales toggle */}
         <div className="creator-detail__analytics-card">
-          <h3 className="creator-detail__card-title">Sales Analytics</h3>
-          <div className="creator-detail__analytics-grid">
-            <div className="creator-detail__analytics-item">
-              <span className="creator-detail__analytics-label">Total Sales</span>
-              <span className="creator-detail__analytics-value">{formatCurrency(salesAnalytics.totalSales)}</span>
-            </div>
-            <div className="creator-detail__analytics-item">
-              <span className="creator-detail__analytics-label">Approved Sales</span>
-              <span className="creator-detail__analytics-value">{formatCurrency(salesAnalytics.approvedSales)}</span>
-            </div>
-            <div className="creator-detail__analytics-item">
-              <span className="creator-detail__analytics-label">Avg Sales / Post</span>
-              <span className="creator-detail__analytics-value">{formatCurrency(Math.round(salesAnalytics.totalSales / (metrics.contentCount || 1)))}</span>
-            </div>
-            <div className="creator-detail__analytics-item">
-              <span className="creator-detail__analytics-label">Active Platform</span>
-              <span className="creator-detail__analytics-value">{creator.platform}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+            <h3 className="creator-detail__card-title" style={{ marginBottom: 0 }}>Sales Analytics</h3>
+            <div className="cp-perf-tabs">
+              <button
+                className={`cp-perf-tab ${detailPerfTab === 'content' ? 'cp-perf-tab--active' : ''}`}
+                onClick={() => setDetailPerfTab('content')}
+              >
+                <BarChart2 size={13} />
+                Content
+              </button>
+              <button
+                className={`cp-perf-tab ${detailPerfTab === 'product' ? 'cp-perf-tab--active' : ''}`}
+                onClick={() => setDetailPerfTab('product')}
+              >
+                <Package size={13} />
+                Product Sales
+              </button>
             </div>
           </div>
+
+          {detailPerfTab === 'content' && (
+            <div className="creator-detail__analytics-grid fade-in">
+              <div className="creator-detail__analytics-item">
+                <span className="creator-detail__analytics-label">Total Sales</span>
+                <span className="creator-detail__analytics-value">{formatCurrency(salesAnalytics.totalSales)}</span>
+              </div>
+              <div className="creator-detail__analytics-item">
+                <span className="creator-detail__analytics-label">Approved Sales</span>
+                <span className="creator-detail__analytics-value">{formatCurrency(salesAnalytics.approvedSales)}</span>
+              </div>
+              <div className="creator-detail__analytics-item">
+                <span className="creator-detail__analytics-label">Avg Sales / Post</span>
+                <span className="creator-detail__analytics-value">{formatCurrency(Math.round(salesAnalytics.totalSales / (metrics.contentCount || 1)))}</span>
+              </div>
+              <div className="creator-detail__analytics-item">
+                <span className="creator-detail__analytics-label">Active Platform</span>
+                <span className="creator-detail__analytics-value">{creator.platform}</span>
+              </div>
+            </div>
+          )}
+
+          {detailPerfTab === 'product' && (
+            <div className="fade-in">
+              {/* Mini KPI strip */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+                <div style={{ background: '#ede9fe', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: '#6538ea', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Orders</div>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: '#6538ea' }}>{campaignProductTotals.unitsSold}</div>
+                </div>
+                <div style={{ background: '#ecfdf5', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: '#059669', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales Value</div>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: '#059669' }}>{formatCurrency(campaignProductTotals.salesValue)}</div>
+                </div>
+                <div style={{ background: '#eff6ff', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', color: '#3b82f6', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Products</div>
+                  <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: '#3b82f6' }}>{campaignProductRows.length}</div>
+                </div>
+              </div>
+
+              {campaignProductRows.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--hp-text-tertiary)', fontSize: 'var(--text-sm)', padding: 'var(--space-4) 0' }}>
+                  <Package size={18} />
+                  <span>No product sales tracked for this campaign.</span>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="analytics__table" style={{ fontSize: 'var(--text-xs)' }}>
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th style={{ textAlign: 'right' }}>Orders</th>
+                        <th style={{ textAlign: 'right' }}>Sales Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campaignProductRows.map(row => (
+                        <tr key={row.productId}>
+                          <td>
+                            <div style={{ fontWeight: 600 }}>{row.productName}</div>
+                            <span className="analytics__table-tag" style={{ marginTop: 2 }}>{row.productCategory}</span>
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 700 }}>{row.unitsSold}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>{formatCurrency(row.salesValue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Engagement & Traffic Analytics */}

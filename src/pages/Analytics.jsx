@@ -6,13 +6,15 @@ import {
 } from 'recharts';
 import { campaigns } from '../data/campaigns';
 import { getCampaignMetrics, getPlatformBreakdown } from '../data/metrics';
-import { formatNumber, formatCurrency, formatPercent, formatCompactNumber, formatDate } from '../utils/formatters';
+import { getAggregatedProductSales, getProductSalesKPIs } from '../data/productSales';
+import { formatNumber, formatCurrency, formatCompactNumber, formatDate } from '../utils/formatters';
 import KPICard from '../components/common/KPICard';
 import StatusBadge from '../components/common/StatusBadge';
 import ExportButton from '../components/common/ExportButton';
 import {
-  Users, FileVideo, Eye, ShoppingCart, MousePointerClick, TrendingUp,
-  ArrowUpRight, Sparkles, Smartphone, Video, Award, Target
+  Users, FileVideo, Eye, ShoppingCart, MousePointerClick,
+  ArrowUpRight, Sparkles, Smartphone, Video, Award, Target,
+  Package, BarChart2, TrendingUp, Hash,
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import './Analytics.css';
@@ -35,6 +37,8 @@ export default function Analytics() {
   const { portal, currentConfig, isBrandConnect } = usePortal();
   const [selectedMetric, setSelectedMetric] = useState('views');
   const [timeRange, setTimeRange] = useState('All Time');
+  // Performance Analytics tab
+  const [perfTab, setPerfTab] = useState('content'); // 'content' | 'product'
 
   // Aggregated campaign metrics for current portal
   const portalCampaigns = useMemo(() => {
@@ -74,6 +78,10 @@ export default function Analytics() {
       revenuePerClick,
     };
   }, [allMetrics]);
+
+  // Product Sales derived data
+  const productRows = useMemo(() => getAggregatedProductSales(portal), [portal]);
+  const productKPIs = useMemo(() => getProductSalesKPIs(portal), [portal]);
 
   // Combined platform breakdown across campaigns
   const platformData = useMemo(() => {
@@ -163,6 +171,155 @@ export default function Analytics() {
           <ExportButton label="Export Intelligence" />
         </div>
       </div>
+
+      {/* ── Performance Analytics Tab Switcher ── */}
+      <div className="analytics__perf-header">
+        <h2 className="analytics__perf-title">Performance Analytics</h2>
+        <div className="analytics__perf-tabs">
+          <button
+            id="perf-tab-content"
+            className={`analytics__perf-tab ${perfTab === 'content' ? 'analytics__perf-tab--active' : ''}`}
+            onClick={() => setPerfTab('content')}
+          >
+            <BarChart2 size={15} />
+            Content Performance
+          </button>
+          <button
+            id="perf-tab-product"
+            className={`analytics__perf-tab ${perfTab === 'product' ? 'analytics__perf-tab--active' : ''}`}
+            onClick={() => setPerfTab('product')}
+          >
+            <Package size={15} />
+            Product Sales
+          </button>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════
+           PRODUCT SALES VIEW
+      ══════════════════════════════════════════════════ */}
+      {perfTab === 'product' && (
+        <div className="analytics__product-section fade-in">
+          {/* Product Sales KPI Cards */}
+          <div className="analytics__product-kpis">
+            <div className="analytics__prod-kpi-card">
+              <div className="analytics__prod-kpi-icon" style={{ background: '#ede9fe' }}>
+                <Package size={20} color="#6538ea" />
+              </div>
+              <div>
+                <div className="analytics__prod-kpi-label">Total Orders</div>
+                <div className="analytics__prod-kpi-val">{formatNumber(productKPIs.totalUnitsSold)}</div>
+                <div className="analytics__prod-kpi-sub">Orders across all creators</div>
+              </div>
+            </div>
+            <div className="analytics__prod-kpi-card">
+              <div className="analytics__prod-kpi-icon" style={{ background: '#ecfdf5' }}>
+                <TrendingUp size={20} color="#059669" />
+              </div>
+              <div>
+                <div className="analytics__prod-kpi-label">Total Product Sales Value</div>
+                <div className="analytics__prod-kpi-val" style={{ color: '#059669' }}>{formatCurrency(productKPIs.totalSalesValue)}</div>
+                <div className="analytics__prod-kpi-sub">Gross GMV from tracked products</div>
+              </div>
+            </div>
+            <div className="analytics__prod-kpi-card">
+              <div className="analytics__prod-kpi-icon" style={{ background: '#fff7ed' }}>
+                <Users size={20} color="#f59e0b" />
+              </div>
+              <div>
+                <div className="analytics__prod-kpi-label">Active Creators</div>
+                <div className="analytics__prod-kpi-val" style={{ color: '#f59e0b' }}>{productKPIs.activeCreators}</div>
+                <div className="analytics__prod-kpi-sub">Creators driving product sales</div>
+              </div>
+            </div>
+            <div className="analytics__prod-kpi-card">
+              <div className="analytics__prod-kpi-icon" style={{ background: '#eff6ff' }}>
+                <Hash size={20} color="#3b82f6" />
+              </div>
+              <div>
+                <div className="analytics__prod-kpi-label">Active Products</div>
+                <div className="analytics__prod-kpi-val" style={{ color: '#3b82f6' }}>{productKPIs.activeProducts}</div>
+                <div className="analytics__prod-kpi-sub">Unique products with tracked sales</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Sales Table */}
+          <div className="analytics__card">
+            <div className="analytics__card-header">
+              <div>
+                <h2 className="analytics__card-title">Product Sales Overview</h2>
+                <p className="analytics__card-subtitle">
+                  Aggregated per product × creator across all campaigns — independent of collection or video revenue.
+                </p>
+              </div>
+              <ExportButton label="Export Sales" />
+            </div>
+            <div className="analytics__table-wrap">
+              <table className="analytics__table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Creator</th>
+                    <th>Platform</th>
+                    <th style={{ textAlign: 'right' }}>Orders</th>
+                    <th style={{ textAlign: 'right' }}>Sales Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productRows.map((row, idx) => (
+                    <tr key={row.productId + '::' + row.creatorId}>
+                      <td>
+                        <div className="analytics__prod-table-product">
+                          <div
+                            className="analytics__prod-rank"
+                            style={{ background: idx < 3 ? '#ede9fe' : 'var(--hp-bg)' }}
+                          >
+                            <span style={{ color: idx < 3 ? '#6538ea' : 'var(--hp-text-tertiary)', fontWeight: 700, fontSize: '0.7rem' }}>#{idx + 1}</span>
+                          </div>
+                          <span className="analytics__prod-name">{row.productName}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="analytics__table-tag">{row.productCategory}</span>
+                      </td>
+                      <td>
+                        <div className="analytics__prod-creator">
+                          <div
+                            className="analytics__prod-avatar"
+                            style={{ background: row.avatarColor }}
+                          >
+                            {row.creatorName.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="analytics__prod-creator-name">{row.creatorName}</div>
+                            <div className="analytics__prod-creator-handle">{row.creatorHandle}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`analytics__plat-badge analytics__plat-badge--${row.platform.toLowerCase()}`}>
+                          {row.platform === 'Instagram' ? <Smartphone size={11} /> : <Video size={11} />}
+                          {row.platform}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatNumber(row.unitsSold)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>{formatCurrency(row.salesValue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+           CONTENT PERFORMANCE VIEW (original)
+      ══════════════════════════════════════════════════ */}
+      {perfTab === 'content' && (
+        <div className="fade-in">
 
       {/* 5 KPI Summary Cards */}
       <div className="analytics__kpis">
@@ -477,6 +634,8 @@ export default function Analytics() {
           </table>
         </div>
       </div>
+        </div>
+      )}
     </div>
   );
 }

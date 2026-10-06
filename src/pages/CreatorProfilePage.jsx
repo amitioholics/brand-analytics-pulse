@@ -2,10 +2,12 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   FileVideo, Eye, MousePointerClick, ShoppingCart,
-  ExternalLink, LinkIcon, ArrowLeft, ArrowUpRight, Layers
+  ExternalLink, LinkIcon, ArrowLeft, ArrowUpRight, Layers,
+  Package, TrendingUp, BarChart2
 } from 'lucide-react';
 import { getCreatorById } from '../data/creators';
 import { getCreatorOverallMetrics, getCreatorCampaignBreakdown } from '../data/metrics';
+import { getAggregatedProductSales, getProductById } from '../data/productSales';
 import { getAllContentForCreator } from '../data/content';
 import { formatNumber, formatCurrency, formatPercent, formatDate, getInitials, getSocialUrl } from '../utils/formatters';
 import KPICard from '../components/common/KPICard';
@@ -32,11 +34,25 @@ export default function CreatorProfilePage() {
   const [contentSearch, setContentSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
   const [selectedContent, setSelectedContent] = useState(null);
+  const [creatorPerfTab, setCreatorPerfTab] = useState('content'); // 'content' | 'product'
 
   const creator = useMemo(() => getCreatorById(creatorId), [creatorId]);
   const overallMetrics = useMemo(() => getCreatorOverallMetrics(creatorId, portal), [creatorId, portal]);
   const campaignBreakdown = useMemo(() => getCreatorCampaignBreakdown(creatorId, portal), [creatorId, portal]);
   const allContent = useMemo(() => getAllContentForCreator(creatorId, portal), [creatorId, portal]);
+
+  // Product sales for THIS creator only
+  const creatorProductRows = useMemo(() => {
+    const all = getAggregatedProductSales(portal);
+    return all.filter(r => r.creatorId === creatorId);
+  }, [creatorId, portal]);
+
+  const creatorProductTotals = useMemo(() => ({
+    unitsSold:  creatorProductRows.reduce((s, r) => s + r.unitsSold,  0),
+    salesValue: creatorProductRows.reduce((s, r) => s + r.salesValue, 0),
+    orders:     creatorProductRows.reduce((s, r) => s + r.orders,     0),
+    products:   new Set(creatorProductRows.map(r => r.productId)).size,
+  }), [creatorProductRows]);
 
   // Chart data comparing each campaign
   const campaignComparisonData = useMemo(() => {
@@ -189,60 +205,156 @@ export default function CreatorProfilePage() {
               Detailed performance metrics across all {overallMetrics.campaignsCount} Myntra campaigns
             </p>
           </div>
+          {/* ── Performance tab toggle ── */}
+          <div className="cp-perf-tabs">
+            <button
+              className={`cp-perf-tab ${creatorPerfTab === 'content' ? 'cp-perf-tab--active' : ''}`}
+              onClick={() => setCreatorPerfTab('content')}
+            >
+              <BarChart2 size={14} />
+              Content Performance
+            </button>
+            <button
+              className={`cp-perf-tab ${creatorPerfTab === 'product' ? 'cp-perf-tab--active' : ''}`}
+              onClick={() => setCreatorPerfTab('product')}
+            >
+              <Package size={14} />
+              Product Sales
+            </button>
+          </div>
         </div>
 
-        <div className="creator-campaign-grid">
-          {campaignBreakdown.map(item => (
-            <div key={item.campaign.id} className="creator-campaign-card">
-              <div className="creator-campaign-card__header">
-                <div>
-                  <div className="creator-campaign-card__status-row">
-                    <StatusBadge status={item.campaign.status} />
-                    <span className="creator-campaign-card__dates">
-                      {formatDate(item.campaign.startDate)} – {formatDate(item.campaign.endDate)}
-                    </span>
+        {/* ── Content Performance (existing campaign cards) ── */}
+        {creatorPerfTab === 'content' && (
+          <div className="creator-campaign-grid fade-in">
+            {campaignBreakdown.map(item => (
+              <div key={item.campaign.id} className="creator-campaign-card">
+                <div className="creator-campaign-card__header">
+                  <div>
+                    <div className="creator-campaign-card__status-row">
+                      <StatusBadge status={item.campaign.status} />
+                      <span className="creator-campaign-card__dates">
+                        {formatDate(item.campaign.startDate)} – {formatDate(item.campaign.endDate)}
+                      </span>
+                    </div>
+                    <h3 className="creator-campaign-card__title">{item.campaign.name}</h3>
                   </div>
-                  <h3 className="creator-campaign-card__title">{item.campaign.name}</h3>
+                </div>
+                <p className="creator-campaign-card__desc">{item.campaign.description}</p>
+                <div className="creator-campaign-card__stats-grid">
+                  <div className="creator-campaign-card__stat">
+                    <span className="creator-campaign-card__stat-label">Content</span>
+                    <span className="creator-campaign-card__stat-val">{item.contentCount} pieces</span>
+                  </div>
+                  <div className="creator-campaign-card__stat">
+                    <span className="creator-campaign-card__stat-label">Views</span>
+                    <span className="creator-campaign-card__stat-val">{formatNumber(item.views)}</span>
+                  </div>
+                  <div className="creator-campaign-card__stat">
+                    <span className="creator-campaign-card__stat-label">Clicks</span>
+                    <span className="creator-campaign-card__stat-val">{formatNumber(item.clicks)}</span>
+                  </div>
+                  <div className="creator-campaign-card__stat">
+                    <span className="creator-campaign-card__stat-label">CTR</span>
+                    <span className="creator-campaign-card__stat-val">{item.conversionRate}%</span>
+                  </div>
+                  <div className="creator-campaign-card__stat highlight">
+                    <span className="creator-campaign-card__stat-label">Sales Generated</span>
+                    <span className="creator-campaign-card__stat-val">{formatCurrency(item.sales)}</span>
+                  </div>
+                </div>
+                <div className="creator-campaign-card__footer">
+                  <Link
+                    to={`/campaigns/${item.campaign.id}/creators/${creator.id}`}
+                    className="btn btn-secondary creator-campaign-card__cta"
+                  >
+                    <span>Open Campaign Deep Dive</span>
+                    <ArrowUpRight size={15} />
+                  </Link>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              <p className="creator-campaign-card__desc">{item.campaign.description}</p>
-
-              <div className="creator-campaign-card__stats-grid">
-                <div className="creator-campaign-card__stat">
-                  <span className="creator-campaign-card__stat-label">Content</span>
-                  <span className="creator-campaign-card__stat-val">{item.contentCount} pieces</span>
+        {/* ── Product Sales view ── */}
+        {creatorPerfTab === 'product' && (
+          <div className="cp-product-sales fade-in">
+            {/* Mini KPI strip */}
+            <div className="cp-product-kpis">
+              <div className="cp-product-kpi">
+                <div className="cp-product-kpi__icon" style={{ background: '#ede9fe' }}>
+                  <Package size={18} color="#6538ea" />
                 </div>
-                <div className="creator-campaign-card__stat">
-                  <span className="creator-campaign-card__stat-label">Views</span>
-                  <span className="creator-campaign-card__stat-val">{formatNumber(item.views)}</span>
-                </div>
-                <div className="creator-campaign-card__stat">
-                  <span className="creator-campaign-card__stat-label">Clicks</span>
-                  <span className="creator-campaign-card__stat-val">{formatNumber(item.clicks)}</span>
-                </div>
-                <div className="creator-campaign-card__stat">
-                  <span className="creator-campaign-card__stat-label">CTR</span>
-                  <span className="creator-campaign-card__stat-val">{item.conversionRate}%</span>
-                </div>
-                <div className="creator-campaign-card__stat highlight">
-                  <span className="creator-campaign-card__stat-label">Sales Generated</span>
-                  <span className="creator-campaign-card__stat-val">{formatCurrency(item.sales)}</span>
+                <div>
+                  <div className="cp-product-kpi__label">Orders</div>
+                  <div className="cp-product-kpi__val">{formatNumber(creatorProductTotals.unitsSold)}</div>
                 </div>
               </div>
-
-              <div className="creator-campaign-card__footer">
-                <Link
-                  to={`/campaigns/${item.campaign.id}/creators/${creator.id}`}
-                  className="btn btn-secondary creator-campaign-card__cta"
-                >
-                  <span>Open Campaign Deep Dive</span>
-                  <ArrowUpRight size={15} />
-                </Link>
+              <div className="cp-product-kpi">
+                <div className="cp-product-kpi__icon" style={{ background: '#ecfdf5' }}>
+                  <TrendingUp size={18} color="#059669" />
+                </div>
+                <div>
+                  <div className="cp-product-kpi__label">Sales Value</div>
+                  <div className="cp-product-kpi__val" style={{ color: '#059669' }}>{formatCurrency(creatorProductTotals.salesValue)}</div>
+                </div>
+              </div>
+              <div className="cp-product-kpi">
+                <div className="cp-product-kpi__icon" style={{ background: '#eff6ff' }}>
+                  <Layers size={18} color="#3b82f6" />
+                </div>
+                <div>
+                  <div className="cp-product-kpi__label">Products</div>
+                  <div className="cp-product-kpi__val" style={{ color: '#3b82f6' }}>{creatorProductTotals.products}</div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+
+            {creatorProductRows.length === 0 ? (
+              <div className="cp-product-empty">
+                <Package size={32} color="var(--hp-text-tertiary)" />
+                <p>No product sales tracked for this creator yet.</p>
+              </div>
+            ) : (
+              <div className="cp-product-table-wrap">
+                <table className="analytics__table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Product</th>
+                      <th>Category</th>
+                      <th style={{ textAlign: 'right' }}>Orders</th>
+                      <th style={{ textAlign: 'right' }}>Sales Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {creatorProductRows.map((row, idx) => (
+                      <tr key={row.productId}>
+                        <td>
+                          <div
+                            className="analytics__prod-rank"
+                            style={{ background: idx < 3 ? '#ede9fe' : 'var(--hp-bg)' }}
+                          >
+                            <span style={{ color: idx < 3 ? '#6538ea' : 'var(--hp-text-tertiary)', fontWeight: 700, fontSize: '0.7rem' }}>#{idx + 1}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{row.productName}</div>
+                        </td>
+                        <td>
+                          <span className="analytics__table-tag">{row.productCategory}</span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatNumber(row.unitsSold)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>{formatCurrency(row.salesValue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Cross-Campaign Performance Chart */}
