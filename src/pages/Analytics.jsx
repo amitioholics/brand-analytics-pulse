@@ -149,9 +149,9 @@ export default function Analytics() {
         <div className="analytics__header-left">
           <div className="analytics__badge">
             <Sparkles size={14} />
-            <span>{currentConfig.name} • Intelligence</span>
+            <span>Pulse • {currentConfig.name}</span>
           </div>
-          <h1 className="analytics__title">{currentConfig.name} Analytics</h1>
+          <h1 className="analytics__title">Pulse</h1>
           <p className="analytics__subtitle">
             Holistic cross-campaign performance, creator distribution, audience funnel conversion, and platform revenue.
           </p>

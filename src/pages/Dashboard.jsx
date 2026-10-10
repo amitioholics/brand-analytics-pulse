@@ -84,7 +84,7 @@ export default function Dashboard() {
         <div>
           <div className="dashboard__header-top">
             <h1 className="dashboard__title">
-              {currentConfig.name} Dashboard
+              Pulse
             </h1>
             <span className={`dashboard__mode-pill dashboard__mode-pill--${portal}`}>
               {isBrandConnect ? <Sparkles size={13} /> : <Gift size={13} />}

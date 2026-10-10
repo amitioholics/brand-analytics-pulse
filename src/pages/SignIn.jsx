@@ -169,7 +169,7 @@ export default function SignIn() {
 
         <div className="signin-card__footer">
           <ShieldCheck size={14} color="#6538ea" />
-          <span>Protected by HaulPack Enterprise Security</span>
+          <span>Protected by Pulse Enterprise Security</span>
         </div>
       </div>
     </div>

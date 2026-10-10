@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { ShoppingBag } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import './AppLayout.css';
 
 export default function AppLayout() {
@@ -11,9 +11,9 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      {/* HaulPack floating action widget */}
-      <div className="haulpack-floating-action" title="HaulPack Quick Actions">
-        <ShoppingBag size={20} color="#ffffff" strokeWidth={2.2} />
+      {/* Pulse floating action widget */}
+      <div className="haulpack-floating-action" title="Pulse Quick Actions">
+        <Activity size={20} color="#ffffff" strokeWidth={2.4} />
       </div>
     </div>
   );
