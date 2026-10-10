@@ -34,7 +34,7 @@ export default function PortalSwitcher({ onSelect }) {
       <div className="portal-switcher__label-row">
         <span className="portal-switcher__caption">PORTAL VIEW</span>
         <span className="portal-switcher__active-tag">
-          {isBrandConnect ? 'Collabs' : 'Rewards'}
+          {isBrandConnect ? 'Campaigns' : 'Rewards'}
         </span>
       </div>
 
@@ -56,7 +56,7 @@ export default function PortalSwitcher({ onSelect }) {
         <div className="portal-switcher__trigger-info">
           <span className="portal-switcher__trigger-title">{currentConfig.name}</span>
           <span className="portal-switcher__trigger-sub">
-            {isBrandConnect ? 'Influencer Collabs' : 'Affiliate Rewards'}
+            {isBrandConnect ? 'Influencer Campaigns' : 'Affiliate Rewards'}
           </span>
         </div>
 
@@ -87,7 +87,7 @@ export default function PortalSwitcher({ onSelect }) {
               <div className="portal-switcher__opt-content">
                 <div className="portal-switcher__opt-title-row">
                   <span className="portal-switcher__opt-name">Brand Connect</span>
-                  <span className="portal-switcher__opt-pill portal-switcher__opt-pill--brand">Collabs</span>
+                  <span className="portal-switcher__opt-pill portal-switcher__opt-pill--brand">Campaigns</span>
                 </div>
                 <p className="portal-switcher__opt-desc">
                   Direct creator partnerships, sponsored deliverables, and brand activations.

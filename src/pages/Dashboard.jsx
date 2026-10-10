@@ -49,14 +49,14 @@ export default function Dashboard() {
 
   const summaryCards = [
     {
-      label: isBrandConnect ? 'Total Collabs' : 'Total Programs',
+      label: isBrandConnect ? 'Total Campaigns' : 'Total Programs',
       value: portalCampaigns.length,
       icon: isBrandConnect ? Sparkles : Megaphone,
       color: currentConfig.accentColor,
       bg: currentConfig.secondaryColor,
     },
     {
-      label: isBrandConnect ? 'Active Collabs' : 'Active Programs',
+      label: isBrandConnect ? 'Active Campaigns' : 'Active Programs',
       value: activeCampaigns.length,
       icon: TrendingUp,
       color: '#10b981',
@@ -93,7 +93,7 @@ export default function Dashboard() {
           </div>
           <p className="dashboard__subtitle">
             {isBrandConnect
-              ? 'Real-time influencer collaborations, deliverables, and brand media reach.'
+              ? 'Real-time influencer campaigns, deliverables, and brand media reach.'
               : 'Real-time creator catalog hauls, affiliate conversion, and gross sales attribution.'}
           </p>
         </div>
@@ -377,7 +377,7 @@ export default function Dashboard() {
           <div className="dashboard__section-header">
             <div>
               <h2 className="dashboard__section-title">
-                {isBrandConnect ? 'Active Brand Collaborations' : 'Recent Reward Programs'}
+                {isBrandConnect ? 'Active Brand Campaigns' : 'Recent Reward Programs'}
               </h2>
               <p className="dashboard__section-subtitle">
                 {isBrandConnect
@@ -386,7 +386,7 @@ export default function Dashboard() {
               </p>
             </div>
             <Link to="/campaigns" className="dashboard__view-all">
-              View all {isBrandConnect ? 'collaborations' : 'campaigns'} <ArrowRight size={14} />
+              View all {isBrandConnect ? 'campaigns' : 'programs'} <ArrowRight size={14} />
             </Link>
           </div>
           <div className="dashboard__campaigns">

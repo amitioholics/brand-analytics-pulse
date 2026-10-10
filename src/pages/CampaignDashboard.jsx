@@ -347,7 +347,7 @@ export default function CampaignDashboard() {
   return (
     <div className="campaign-dash fade-in">
       <Breadcrumb items={[
-        { label: campaign.portalType === 'brand-connect' ? 'Collaborations' : 'Reward Programs', to: '/campaigns' },
+        { label: campaign.portalType === 'brand-connect' ? 'Campaigns' : 'Reward Programs', to: '/campaigns' },
         { label: campaign.name },
       ]} />
 
@@ -358,7 +358,7 @@ export default function CampaignDashboard() {
             {campaign.portalType === 'brand-connect' ? (
               <span className="campaign-dash__portal-badge campaign-dash__portal-badge--brand">
                 <Sparkles size={13} />
-                <span>Brand Connect Collaboration</span>
+                <span>Brand Connect Campaign</span>
               </span>
             ) : (
               <span className="campaign-dash__portal-badge campaign-dash__portal-badge--reward">

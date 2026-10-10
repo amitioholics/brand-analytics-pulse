@@ -20,7 +20,7 @@ export default function Sidebar() {
 
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/campaigns', icon: Megaphone, label: isBrandConnect ? 'Collaborations' : 'Reward Campaigns' },
+    { path: '/campaigns', icon: Megaphone, label: isBrandConnect ? 'Campaigns' : 'Reward Campaigns' },
     ...(isBrandConnect ? [{
       path: '/approvals',
       icon: Video,

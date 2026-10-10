@@ -47,7 +47,7 @@ export default function CampaignList() {
   const columns = [
     {
       key: 'name',
-      label: isBrandConnect ? 'Collaboration Name' : 'Program Name',
+      label: isBrandConnect ? 'Campaign Name' : 'Program Name',
       width: '280px',
       render: (val) => <span style={{ fontWeight: 600 }}>{val}</span>,
     },

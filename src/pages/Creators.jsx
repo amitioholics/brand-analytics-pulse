@@ -171,7 +171,7 @@ export default function Creators() {
     },
     {
       key: 'campaignsCount',
-      label: isBrandConnect ? 'Collabs' : 'Campaigns',
+      label: 'Campaigns',
       align: 'center',
       render: (val) => (
         <span style={{
@@ -183,7 +183,7 @@ export default function Creators() {
           background: val >= 2 ? 'var(--hp-primary-subtle)' : 'var(--hp-bg-body)',
           color: val >= 2 ? 'var(--hp-primary)' : 'var(--hp-text-secondary)',
         }}>
-          {val} {val === 1 ? (isBrandConnect ? 'Collab' : 'Campaign') : (isBrandConnect ? 'Collabs' : 'Campaigns')}
+          {val} {val === 1 ? 'Campaign' : 'Campaigns'}
         </span>
       ),
     },
@@ -345,7 +345,7 @@ export default function Creators() {
           icon={ShoppingCart}
           label={isBrandConnect ? 'Total Media Value Driven' : 'Total Sales Driven'}
           value={formatCurrency(totals.sales)}
-          change={isBrandConnect ? 'Brand collab value' : 'Catalog revenue'}
+          change={isBrandConnect ? 'Brand campaign value' : 'Catalog revenue'}
           positive={true}
         />
       </div>

@@ -116,7 +116,7 @@ export default function CreatorProfilePage() {
             <h1 className="creator-profile-page__name">{creator.name}</h1>
             <span className="creator-profile-page__badge">
               <Layers size={14} />
-              Participated in {overallMetrics.campaignsCount} {overallMetrics.campaignsCount === 1 ? (isBrandConnect ? 'Collab' : 'Campaign') : (isBrandConnect ? 'Collabs' : 'Campaigns')}
+              Participated in {overallMetrics.campaignsCount} {overallMetrics.campaignsCount === 1 ? 'Campaign' : 'Campaigns'}
             </span>
           </div>
           <div className="creator-profile-page__sub">
@@ -165,8 +165,8 @@ export default function CreatorProfilePage() {
       <div className="creator-profile-page__kpis">
         <KPICard
           icon={Layers}
-          label={isBrandConnect ? 'Collabs Participated' : 'Campaigns Participated'}
-          value={`${overallMetrics.campaignsCount} ${overallMetrics.campaignsCount === 1 ? (isBrandConnect ? 'Collab' : 'Campaign') : (isBrandConnect ? 'Collabs' : 'Campaigns')}`}
+          label="Campaigns Participated"
+          value={`${overallMetrics.campaignsCount} ${overallMetrics.campaignsCount === 1 ? 'Campaign' : 'Campaigns'}`}
           change={`In ${currentConfig.name}`}
           positive={true}
         />

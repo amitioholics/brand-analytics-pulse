@@ -16,10 +16,10 @@ export const PORTAL_CONFIG = {
     tag: 'BRAND CONNECT',
     iconName: 'Sparkles',
     description: 'Direct creator partnerships, sponsored deliverables, and brand activations.',
-    bannerTitle: 'Pulse — Creator Collaborations & Influencer Partnerships',
+    bannerTitle: 'Pulse — Creator Campaigns & Influencer Partnerships',
     bannerSubtitle: 'Direct brand activations, sponsored campaign deliverables, creator reach, and content engagement analytics.',
-    campaignsLabel: 'Collaborations',
-    primaryActionText: 'View All Collabs',
+    campaignsLabel: 'Campaigns',
+    primaryActionText: 'View All Campaigns',
     accentColor: '#6538ea',
     secondaryColor: '#f2edfc',
     metricLabels: {
