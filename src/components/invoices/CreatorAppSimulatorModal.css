@@ -1,0 +1,490 @@
+/* ==========================================================================
+   Creator Mobile App Submission Flow Simulator
+   Faithfully replicating the Figma Mobile App design:
+   - Screen 1: Required Products to Purchase
+   - Screen 2: Submit Invoice (Order ID, Invoice No, Order Date, Amount, Upload PDF)
+   - Screen 3: Order Details Submitted! (Submitted Orders status cards)
+   ========================================================================== */
+
+.creator-sim-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 11, 35, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: simFadeIn 0.2s ease-out;
+}
+
+@keyframes simFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.creator-sim-container {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  max-width: 980px;
+  width: 100%;
+  animation: simScaleUp 0.22s ease-out;
+}
+
+@keyframes simScaleUp {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Info Side Panel explaining connection to Pulse */
+.creator-sim-sidebar {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.creator-sim-sidebar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--hp-primary-lighter, #f2edfc);
+  color: var(--hp-primary, #6538ea);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.creator-sim-sidebar__title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e1a38;
+  margin: 0;
+}
+
+.creator-sim-sidebar__desc {
+  font-size: 13px;
+  color: #686380;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.creator-sim-sidebar__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.creator-sim-sidebar__step-item {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #342e56;
+}
+
+.creator-sim-sidebar__step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.creator-sim-sidebar__step-item--active .creator-sim-sidebar__step-num {
+  background: var(--hp-primary, #6538ea);
+  color: #ffffff;
+}
+
+/* Mobile Phone Shell */
+.creator-sim-phone {
+  width: 390px;
+  height: 780px;
+  background: #ffffff;
+  border-radius: 44px;
+  border: 9px solid #1e1a38;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Dynamic Island / Notch */
+.creator-sim-phone__notch {
+  width: 120px;
+  height: 24px;
+  background: #1e1a38;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+/* Phone Status Bar */
+.creator-sim-phone__status-bar {
+  padding: 10px 24px 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e1a38;
+  z-index: 20;
+}
+
+/* Phone App Header */
+.creator-sim-app-header {
+  padding: 8px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.creator-sim-app-header__btn {
+  background: none;
+  border: none;
+  color: #1e1a38;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.creator-sim-app-header__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e1a38;
+  margin: 0;
+}
+
+/* Stepper: Purchase -> Purchase -> Purchase */
+.creator-sim-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px 10px;
+  position: relative;
+}
+
+.creator-sim-stepper::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 45px;
+  right: 45px;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.creator-sim-stepper__node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.creator-sim-stepper__circle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.creator-sim-stepper__node--active .creator-sim-stepper__circle {
+  background: #5046e5;
+  border-color: #5046e5;
+  color: #ffffff;
+}
+
+.creator-sim-stepper__node--done .creator-sim-stepper__circle {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.creator-sim-stepper__label {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Scrollable Screen Content */
+.creator-sim-screen-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Product Selection Cards (Screen 1) */
+.creator-sim-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.creator-sim-prod-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  position: relative;
+}
+
+.creator-sim-prod-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.creator-sim-prod-info {
+  flex: 1;
+}
+
+.creator-sim-prod-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.creator-sim-prod-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Order Form Inputs (Screen 2) */
+.creator-sim-order-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.creator-sim-order-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.creator-sim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.creator-sim-field__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.creator-sim-field__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #0f172a;
+  outline: none;
+  font-family: inherit;
+}
+
+.creator-sim-field__input:focus {
+  border-color: #5046e5;
+  box-shadow: 0 0 0 2px rgba(80, 70, 229, 0.15);
+}
+
+.creator-sim-upload-box {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.creator-sim-upload-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5046e5;
+}
+
+.creator-sim-upload-sub {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* Submitted Orders (Screen 3 - Figma Exact Cards) */
+.creator-sim-submitted-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.creator-sim-submitted-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.creator-sim-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.creator-sim-badge--under-review {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.creator-sim-badge--approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.creator-sim-badge--rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.creator-sim-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #475569;
+}
+
+.creator-sim-meta-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.creator-sim-meta-value {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Have you received this product? */
+.creator-sim-received-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f1f5f9;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.creator-sim-received-btn {
+  background: #5046e5;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Sticky Bottom Action Bar */
+.creator-sim-sticky-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 40;
+}
+
+.creator-sim-sticky-total {
+  display: flex;
+  flex-direction: column;
+}
+
+.creator-sim-sticky-total-label {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.creator-sim-sticky-total-val {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.creator-sim-primary-btn {
+  background: #5046e5;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.creator-sim-primary-btn:hover {
+  background: #4338ca;
+}

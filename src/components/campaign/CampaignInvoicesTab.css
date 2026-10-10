@@ -1,0 +1,167 @@
+/* ==========================================================================
+   Campaign Invoices Tab Styles
+   ========================================================================== */
+
+.camp-invoices-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.camp-invoices-tab__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .camp-invoices-tab__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .camp-invoices-tab__kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.camp-invoices-tab__kpi {
+  background: #ffffff;
+  border: 1px solid var(--hp-border, #eae7f2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.camp-invoices-tab__kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.camp-invoices-tab__kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.camp-invoices-tab__kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.camp-invoices-tab__kpi-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.camp-invoices-tab__controls {
+  background: #ffffff;
+  border: 1px solid var(--hp-border, #eae7f2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.camp-invoices-tab__status-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.camp-invoices-tab__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.camp-invoices-tab__pill:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.camp-invoices-tab__pill--active {
+  background: var(--hp-primary-lighter, #f2edfc);
+  color: var(--hp-primary, #6538ea);
+  border-color: #ddd6fe;
+  font-weight: 700;
+}
+
+.camp-invoices-tab__table-wrap {
+  background: #ffffff;
+  border: 1px solid var(--hp-border, #eae7f2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.camp-invoices-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.camp-invoices-table th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+
+.camp-invoices-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.camp-invoices-table tr:hover td {
+  background: #fafafc;
+  cursor: pointer;
+}
+
+.camp-invoices-table__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--hp-primary-lighter, #f2edfc);
+  color: var(--hp-primary, #6538ea);
+  border: 1px solid #ddd6fe;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.camp-invoices-table__action-btn:hover {
+  background: var(--hp-primary, #6538ea);
+  color: #ffffff;
+}

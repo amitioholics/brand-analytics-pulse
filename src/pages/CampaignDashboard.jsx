@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Users, FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink,
   Play, CheckCircle2, XCircle, AlertCircle, Sparkles, Clock, Tag, Send,
-  LayoutGrid, BarChart3, Gift, Package, Truck, PackageCheck, FileText, Camera
+  LayoutGrid, BarChart3, Gift, Package, Truck, PackageCheck, FileText, Camera,
+  Receipt
 } from 'lucide-react';
 import { getCampaignById } from '../data/campaigns';
 import { getCampaignMetrics, getAllCreatorMetricsForCampaign, getPlatformBreakdown, getCampaignTimeSeries } from '../data/metrics';
@@ -12,6 +13,7 @@ import { getLivePostsForCampaign, getCampaignSocialKPIs } from '../data/videoSub
 import { productSalesRecords, getProductById, PRODUCTS } from '../data/productSales';
 import { formatNumber, formatCurrency, formatDateRange, getInitials, getSocialUrl } from '../utils/formatters';
 import { useDeliverables } from '../context/DeliverablesContext';
+import { useInvoices } from '../context/InvoiceContext';
 import VideoReviewModal from '../components/video/VideoReviewModal';
 import BarterFulfillmentCard from '../components/campaign/BarterFulfillmentCard';
 import BarterCreatorsModal from '../components/campaign/BarterCreatorsModal';
@@ -19,6 +21,7 @@ import CampaignOverviewTab from '../components/campaign/CampaignOverviewTab';
 import CampaignCreatorsTab from '../components/campaign/CampaignCreatorsTab';
 import CampaignLivePostsTab from '../components/campaign/CampaignLivePostsTab';
 import CampaignPerformanceTab from '../components/campaign/CampaignPerformanceTab';
+import CampaignInvoicesTab from '../components/campaign/CampaignInvoicesTab';
 import Breadcrumb from '../components/common/Breadcrumb';
 import KPICard from '../components/common/KPICard';
 import StatusBadge from '../components/common/StatusBadge';
@@ -52,6 +55,11 @@ export default function CampaignDashboard() {
     approveFinalPayment,
     rejectFinalPayment,
   } = useDeliverables();
+
+  const { getInvoicesForCampaign, INVOICE_STATUSES } = useInvoices();
+  const campInvoices = getInvoicesForCampaign(campaignId);
+  const campPendingInvoicesCount = campInvoices.filter(i => i.status === INVOICE_STATUSES.PENDING).length;
+
   const [deliverableTab, setDeliverableTab] = useState('all');
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [modalRejectMode, setModalRejectMode] = useState(false);
@@ -67,18 +75,10 @@ export default function CampaignDashboard() {
 
   const campaign = getCampaignById(campaignId);
 
-  if (!campaign) {
-    return (
-      <div className="campaign-dash fade-in">
-        <ErrorState message="Campaign not found." onRetry={() => navigate('/campaigns')} />
-      </div>
-    );
-  }
-
-  const metrics = getCampaignMetrics(campaignId);
-  const allCreators = getAllCreatorMetricsForCampaign(campaignId);
-  const platformBreakdown = getPlatformBreakdown(campaignId);
-  const chartData = getCampaignTimeSeries(campaignId, chartMetric, chartTime);
+  const metrics = campaign ? getCampaignMetrics(campaignId) : { contentCount: 0, views: 0, clicks: 0, sales: 0, creatorCount: 0 };
+  const allCreators = campaign ? getAllCreatorMetricsForCampaign(campaignId) : [];
+  const platformBreakdown = campaign ? getPlatformBreakdown(campaignId) : [];
+  const chartData = campaign ? getCampaignTimeSeries(campaignId, chartMetric, chartTime) : [];
   const avgViewsPerContent = metrics.contentCount ? Math.round(metrics.views / metrics.contentCount) : 0;
   const avgClicksPerContent = metrics.contentCount ? Math.round(metrics.clicks / metrics.contentCount) : 0;
   const avgSalesPerContent = metrics.contentCount ? Math.round(metrics.sales / metrics.contentCount) : 0;
@@ -336,6 +336,14 @@ export default function CampaignDashboard() {
     }] : []),
   ];
 
+  if (!campaign) {
+    return (
+      <div className="campaign-dash fade-in">
+        <ErrorState message="Campaign not found." onRetry={() => navigate('/campaigns')} />
+      </div>
+    );
+  }
+
   return (
     <div className="campaign-dash fade-in">
       <Breadcrumb items={[
@@ -428,6 +436,19 @@ export default function CampaignDashboard() {
           >
             <Package size={15} />
             <span>6. Product Sales</span>
+          </button>
+          <button
+            type="button"
+            className={`campaign-dash__view-tab ${activeTab === 'invoices' ? 'active' : ''}`}
+            onClick={() => setActiveTab('invoices')}
+          >
+            <Receipt size={15} />
+            <span>7. Invoices ({campInvoices.length})</span>
+            {campPendingInvoicesCount > 0 && (
+              <span className="campaign-dash__view-tab-count" style={{ background: '#fef3c7', color: '#92400e' }}>
+                {campPendingInvoicesCount} Pending
+              </span>
+            )}
           </button>
         </div>
       )}
@@ -558,6 +579,16 @@ export default function CampaignDashboard() {
             </div>
           )}
         </div>
+      )}
+
+      {/* ==============================================================
+          TAB 7: INVOICES & REIMBURSEMENTS
+         ============================================================== */}
+      {campaign.portalType === 'brand-connect' && activeTab === 'invoices' && (
+        <CampaignInvoicesTab
+          campaignId={campaignId}
+          campaignName={campaign.name}
+        />
       )}
 
       {/* ==============================================================
@@ -999,6 +1030,27 @@ export default function CampaignDashboard() {
             onRowClick={(row) => navigate(`/campaigns/${campaignId}/creators/${row.creatorId || row.id}`)}
             emptyMessage="No creators have joined this campaign yet."
             pageSize={25}
+          />
+        </div>
+      )}
+
+      {/* Reward Program: Reimbursement Invoices Section */}
+      {campaign.portalType === 'reward-program' && campInvoices.length > 0 && (
+        <div className="campaign-dash__section" style={{ marginTop: 'var(--space-8)' }}>
+          <div className="campaign-dash__section-header" style={{ marginBottom: 16 }}>
+            <div>
+              <h2 className="campaign-dash__section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Receipt size={20} color="var(--hp-primary, #6538ea)" />
+                <span>Creator Reimbursement Invoices ({campInvoices.length})</span>
+              </h2>
+              <p className="campaign-dash__section-subtext">
+                Invoices and expense receipts submitted by creators for sample products and styling hauls in this campaign.
+              </p>
+            </div>
+          </div>
+          <CampaignInvoicesTab
+            campaignId={campaignId}
+            campaignName={campaign.name}
           />
         </div>
       )}

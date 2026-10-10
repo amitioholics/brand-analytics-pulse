@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════
+   Pulse Brand Logo — HaulPack Bag + Heartbeat
+   ═══════════════════════════════════════════ */
+
+.pulse-brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  user-select: none;
+  text-decoration: none;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pulse-brand-logo:hover {
+  transform: translateY(-1.5px) scale(1.015);
+}
+
+/* ── Emblem wrapper ── */
+.pulse-brand-logo__emblem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(124, 58, 237, 0.35));
+  transition: filter 0.2s ease;
+}
+
+.pulse-brand-logo:hover .pulse-brand-logo__emblem {
+  filter: drop-shadow(0 4px 14px rgba(124, 58, 237, 0.55));
+}
+
+.pulse-brand-logo__svg {
+  display: block;
+  border-radius: 27%;
+}
+
+/* ── Spark travelling along the heartbeat ── */
+.pulse-brand-logo__emblem--animated .pulse-brand-logo__spark {
+  stroke-dasharray: 9 91;
+  stroke-dashoffset: 9;
+  opacity: 0;
+  animation: plSpark 2.4s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+@keyframes plSpark {
+  0%   { stroke-dashoffset: 9;   opacity: 0; }
+  8%   { opacity: 1; }
+  62%  { stroke-dashoffset: -91; opacity: 1; }
+  66%, 100% { stroke-dashoffset: -91; opacity: 0; }
+}
+
+/* ── Beacon: flashes when the spark arrives ── */
+.pulse-brand-logo__emblem--animated .pulse-brand-logo__dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: plDot 2.4s ease-out infinite;
+}
+
+@keyframes plDot {
+  0%, 58%  { transform: scale(1); }
+  66%      { transform: scale(1.5); }
+  80%, 100% { transform: scale(1); }
+}
+
+.pulse-brand-logo__ring { opacity: 0; }
+
+.pulse-brand-logo__emblem--animated .pulse-brand-logo__ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: plRing 2.4s ease-out infinite;
+}
+
+@keyframes plRing {
+  0%, 60% { transform: scale(0.6); opacity: 0; }
+  64%     { opacity: 0.9; }
+  100%    { transform: scale(2.1); opacity: 0; }
+}
+
+/* ── Halo breathes with the beat ── */
+.pulse-brand-logo__emblem--animated .pulse-brand-logo__halo {
+  animation: plHalo 2.4s ease-in-out infinite;
+}
+
+@keyframes plHalo {
+  0%, 100% { opacity: 0.7; }
+  40%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-brand-logo__emblem--animated * { animation: none !important; }
+}
+
+/* ══════════════════
+   Typography
+   ══════════════════ */
+.pulse-brand-logo__text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.pulse-brand-logo__title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Wordmark: "Pulse." */
+.pulse-brand-logo__wordmark {
+  font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--hp-text-primary, #1e1a38);
+}
+
+/* Gradient full stop — echoes the beacon */
+.pulse-brand-logo__period {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pulse-brand-logo__badge {
+  font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6538ea;
+  background: #f2edfc;
+  border: 1px solid #e0d7fb;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.pulse-brand-logo__tagline {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--hp-text-tertiary, #9d97b3);
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+
+.pulse-brand-logo__tagline strong {
+  font-weight: 700;
+  color: var(--hp-dark-purple, #342e56);
+}
+
+/* ══════════════════
+   Size Modifiers
+   ══════════════════ */
+.pulse-brand-logo--sm .pulse-brand-logo__wordmark { font-size: 1.1rem; }
+.pulse-brand-logo--sm .pulse-brand-logo__tagline  { font-size: 0.6rem; }
+
+.pulse-brand-logo--md .pulse-brand-logo__wordmark { font-size: 1.3rem; }
+.pulse-brand-logo--md .pulse-brand-logo__tagline  { font-size: 0.6875rem; }
+
+.pulse-brand-logo--lg .pulse-brand-logo__wordmark { font-size: 1.7rem; }
+.pulse-brand-logo--lg .pulse-brand-logo__tagline  { font-size: 0.8rem; margin-top: 3px; }
+.pulse-brand-logo--lg .pulse-brand-logo__badge    { font-size: 0.65rem; padding: 2.5px 8px; }
+
+/* ══════════════════
+   Dark Variant
+   ══════════════════ */
+.pulse-brand-logo--dark .pulse-brand-logo__wordmark {
+  color: #ffffff;
+}
+.pulse-brand-logo--dark .pulse-brand-logo__tagline strong {
+  color: #ffffff;
+}
+.pulse-brand-logo--dark .pulse-brand-logo__tagline {
+  color: rgba(255, 255, 255, 0.55);
+}
+.pulse-brand-logo--dark .pulse-brand-logo__badge {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}

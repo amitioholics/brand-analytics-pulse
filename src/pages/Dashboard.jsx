@@ -13,18 +13,23 @@ import {
   Sparkles,
   Gift,
   ArrowRightLeft,
+  FileText,
+  Landmark,
+  Receipt,
 } from 'lucide-react';
 import { getCampaignsByPortal } from '../data/campaigns';
 import { getCampaignMetrics } from '../data/metrics';
 import { formatNumber, formatCurrency, formatDate } from '../utils/formatters';
 import { usePortal } from '../context/PortalContext';
 import { useDeliverables } from '../context/DeliverablesContext';
+import { useInvoices } from '../context/InvoiceContext';
 import StatusBadge from '../components/common/StatusBadge';
 import './Dashboard.css';
 
 export default function Dashboard() {
   const { portal, togglePortal, currentConfig, isBrandConnect } = usePortal();
   const { pendingCount, pendingDraftsCount, pendingLivePostsCount } = useDeliverables();
+  const { pendingCount: pendingInvoicesCount, totalPendingAmount } = useInvoices();
 
   // Filter campaigns strictly for the active portal mode
   const portalCampaigns = useMemo(() => {
@@ -192,6 +197,73 @@ export default function Dashboard() {
             }}
           >
             <span>Review Now</span>
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+      )}
+
+      {/* Creator Invoices & Reimbursement Action Alert */}
+      {pendingInvoicesCount > 0 && (
+        <div className="dashboard__action-items-card" style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #fffbf5 100%)',
+          border: '1.5px solid #fed7aa',
+          borderRadius: 12,
+          padding: '18px 24px',
+          marginBottom: 24,
+          boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 20,
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: '#fef3c7',
+              color: '#d97706',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Receipt size={24} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                  {pendingInvoicesCount} Creator Reimbursement {pendingInvoicesCount === 1 ? 'Invoice' : 'Invoices'} Awaiting Verification
+                </h3>
+                <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span>{formatCurrency(totalPendingAmount)} Total Claimed</span>
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                Creators have submitted receipts and tax invoices for product purchases, studio equipment, and campaign logistics.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/invoices?status=pending"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#d97706',
+              color: '#ffffff',
+              padding: '10px 20px',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>Verify Invoices</span>
             <ArrowRight size={15} />
           </Link>
         </div>
@@ -386,6 +458,14 @@ export default function Dashboard() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#d97706', marginTop: 5, flexShrink: 0 }} />
+                <div>
+                  <strong>@aditisharma</strong> submitted reimbursement invoice <strong>INV-2026-AW-0104</strong> for ₹8,398.
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>20 mins ago • 2 receipts attached</div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#655bef', marginTop: 5, flexShrink: 0 }} />
                 <div>

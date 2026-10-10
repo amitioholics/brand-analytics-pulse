@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import PulseLogo from '../components/common/PulseLogo';
 import './SignIn.css';
 
 export default function SignIn() {
@@ -48,12 +49,12 @@ export default function SignIn() {
       <div className="signin-card">
         {/* Logo & Header */}
         <div className="signin-card__brand">
-          <Link to="/" className="signin-card__logo-link">
-            <img src="/haulpack-logo.png" alt="HaulPack" className="signin-card__logo-img" />
+          <Link to="/" className="signin-card__logo-link" title="Pulse">
+            <PulseLogo size="lg" />
           </Link>
           <h1 className="signin-card__title">Sign In</h1>
           <p className="signin-card__subtitle">
-            Enter your credentials to access Brand Analytics
+            Enter your credentials to access Pulse
           </p>
         </div>
 

@@ -1,11 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink, LinkIcon, ArrowUpRight, Package, TrendingUp, BarChart2 } from 'lucide-react';
+import {
+  FileVideo, Eye, MousePointerClick, ShoppingCart, ExternalLink,
+  LinkIcon, ArrowUpRight, Package, TrendingUp, BarChart2,
+  FileText, CheckCircle2, Clock, Receipt
+} from 'lucide-react';
 import { getCampaignById } from '../data/campaigns';
 import { getCreatorById, getCampaignCreatorRelation } from '../data/creators';
 import { getContentForCreator } from '../data/content';
 import { getCreatorCampaignMetrics, getCreatorSalesAnalytics } from '../data/metrics';
 import { productSalesRecords, getProductById } from '../data/productSales';
+import { useInvoices } from '../context/InvoiceContext';
 import { formatNumber, formatCurrency, formatPercent, formatDate } from '../utils/formatters';
 import Breadcrumb from '../components/common/Breadcrumb';
 import KPICard from '../components/common/KPICard';
@@ -16,6 +21,7 @@ import CreatorProfileHeader from '../components/creator/CreatorProfileHeader';
 import CreatorPerformanceChart from '../components/creator/CreatorPerformanceChart';
 import ContentCard from '../components/content/ContentCard';
 import ContentDetailDrawer from '../components/content/ContentDetailDrawer';
+import InvoiceDetailModal from '../components/invoices/InvoiceDetailModal';
 import DataTable from '../components/common/DataTable';
 import './CreatorDetail.css';
 
@@ -23,9 +29,15 @@ export default function CreatorDetail() {
   const { campaignId, creatorId } = useParams();
   const navigate = useNavigate();
   const [drawerContent, setDrawerContent] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // cards | table
   const [contentSort, setContentSort] = useState('views');
   const [detailPerfTab, setDetailPerfTab] = useState('content'); // 'content' | 'product'
+
+  const { getInvoicesForCampaign, INVOICE_STATUSES } = useInvoices();
+  const creatorCampInvoices = useMemo(() => {
+    return getInvoicesForCampaign(campaignId).filter(i => i.creatorId === creatorId);
+  }, [campaignId, creatorId, getInvoicesForCampaign]);
 
   const campaign = getCampaignById(campaignId);
   const creator = getCreatorById(creatorId);
@@ -372,12 +384,122 @@ export default function CreatorDetail() {
         )}
       </div>
 
+      {/* Campaign Reimbursement Invoices */}
+      {creatorCampInvoices.length > 0 && (
+        <div className="creator-detail__section" style={{ marginTop: 'var(--space-6)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h3 className="creator-detail__section-title" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                <Receipt size={18} color="var(--hp-primary, #6538ea)" />
+                <span>Submitted Reimbursement Invoices ({creatorCampInvoices.length})</span>
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--hp-text-secondary)' }}>
+                Reimbursement requests submitted by {creator.name} for this campaign.
+              </p>
+            </div>
+            <Link to={`/invoices?campaign=${campaignId}`} className="btn btn-sm btn-secondary">
+              View All Invoices →
+            </Link>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: 12, border: '1px solid var(--hp-border)', overflow: 'hidden' }}>
+            <table className="analytics__table">
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Category</th>
+                  <th>Submitted Date</th>
+                  <th style={{ textAlign: 'right' }}>Claimed Amount</th>
+                  <th>Proofs</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {creatorCampInvoices.map(inv => (
+                  <tr key={inv.id} onClick={() => setSelectedInvoice(inv)} style={{ cursor: 'pointer' }}>
+                    <td>
+                      <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--hp-primary, #6538ea)' }}>
+                        {inv.invoiceNumber}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b' }}>
+                        Order #{inv.primaryOrderId || inv.invoiceNumber}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="analytics__table-tag">{inv.expenseCategory}</span>
+                    </td>
+                    <td style={{ fontSize: 12, color: '#64748b' }}>
+                      {formatDate(inv.orderDate || inv.invoiceDate)}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                      {formatCurrency(inv.totalOrderAmount || inv.totalAmount)}
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 12, color: '#475569' }}>{inv.attachments?.length || 0} proofs</span>
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background:
+                            inv.status === INVOICE_STATUSES.REIMBURSED
+                              ? '#ecfdf5'
+                              : inv.status === INVOICE_STATUSES.APPROVED
+                              ? '#eef2ff'
+                              : inv.status === INVOICE_STATUSES.REJECTED
+                              ? '#fef2f2'
+                              : '#fffbeb',
+                          color:
+                            inv.status === INVOICE_STATUSES.REIMBURSED
+                              ? '#059669'
+                              : inv.status === INVOICE_STATUSES.APPROVED
+                              ? '#4f46e5'
+                              : inv.status === INVOICE_STATUSES.REJECTED
+                              ? '#dc2626'
+                              : '#b45309',
+                        }}
+                      >
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedInvoice(inv);
+                        }}
+                      >
+                        Inspect & Verify
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Content Detail Drawer */}
       {drawerContent && (
         <ContentDetailDrawer
           content={drawerContent}
           creatorName={creator.name}
           onClose={() => setDrawerContent(null)}
+        />
+      )}
+
+      {/* Invoice Detail Modal */}
+      {selectedInvoice && (
+        <InvoiceDetailModal
+          invoice={selectedInvoice}
+          onClose={() => setSelectedInvoice(null)}
         />
       )}
     </div>

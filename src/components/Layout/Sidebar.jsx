@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Megaphone, Users, BarChart3, LogOut, Menu, X, Video, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Users, BarChart3, LogOut, Menu, X, Video, ShieldCheck, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePortal } from '../../context/PortalContext';
 import { useDeliverables } from '../../context/DeliverablesContext';
+import { useInvoices } from '../../context/InvoiceContext';
 import PortalSwitcher from './PortalSwitcher';
+import PulseLogo from '../common/PulseLogo';
 import './Sidebar.css';
 
 export default function Sidebar() {
@@ -14,6 +16,7 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const { currentConfig, isBrandConnect } = usePortal();
   const { pendingCount } = useDeliverables();
+  const { pendingCount: pendingInvoicesCount } = useInvoices();
 
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -24,6 +27,12 @@ export default function Sidebar() {
       label: 'Video Approvals',
       badge: pendingCount > 0 ? pendingCount : null,
     }] : []),
+    {
+      path: '/invoices',
+      icon: FileText,
+      label: 'Invoices',
+      badge: pendingInvoicesCount > 0 ? pendingInvoicesCount : null,
+    },
     { path: '/creators', icon: Users, label: 'Creators' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/settings/team', icon: ShieldCheck, label: 'Team & Roles' },
@@ -55,11 +64,7 @@ export default function Sidebar() {
       <aside className={`sidebar ${mobileOpen ? 'sidebar--open' : ''}`}>
         <div className="sidebar__header">
           <Link to="/" className="sidebar__logo" onClick={() => setMobileOpen(false)}>
-            <img
-              src="/haulpack-logo.png"
-              alt="HaulPack"
-              className="sidebar__logo-img"
-            />
+            <PulseLogo size="md" />
           </Link>
           <button className="sidebar__close" onClick={() => setMobileOpen(false)}>
             <X size={18} />

@@ -3,18 +3,20 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   FileVideo, Eye, MousePointerClick, ShoppingCart,
   ExternalLink, LinkIcon, ArrowLeft, ArrowUpRight, Layers,
-  Package, TrendingUp, BarChart2
+  Package, TrendingUp, BarChart2, FileText, CheckCircle2, Clock, Receipt
 } from 'lucide-react';
 import { getCreatorById } from '../data/creators';
 import { getCreatorOverallMetrics, getCreatorCampaignBreakdown } from '../data/metrics';
 import { getAggregatedProductSales, getProductById } from '../data/productSales';
 import { getAllContentForCreator } from '../data/content';
+import { useInvoices } from '../context/InvoiceContext';
 import { formatNumber, formatCurrency, formatPercent, formatDate, getInitials, getSocialUrl } from '../utils/formatters';
 import KPICard from '../components/common/KPICard';
 import StatusBadge from '../components/common/StatusBadge';
 import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
 import ContentDetailDrawer from '../components/content/ContentDetailDrawer';
+import InvoiceDetailModal from '../components/invoices/InvoiceDetailModal';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { usePortal } from '../context/PortalContext';
 import './CreatorProfilePage.css';
@@ -34,9 +36,12 @@ export default function CreatorProfilePage() {
   const [contentSearch, setContentSearch] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
   const [selectedContent, setSelectedContent] = useState(null);
-  const [creatorPerfTab, setCreatorPerfTab] = useState('content'); // 'content' | 'product'
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [creatorPerfTab, setCreatorPerfTab] = useState('content'); // 'content' | 'product' | 'invoices'
 
+  const { getInvoicesForCreator, INVOICE_STATUSES } = useInvoices();
   const creator = useMemo(() => getCreatorById(creatorId), [creatorId]);
+  const creatorInvoices = useMemo(() => getInvoicesForCreator(creatorId), [creatorId, getInvoicesForCreator]);
   const overallMetrics = useMemo(() => getCreatorOverallMetrics(creatorId, portal), [creatorId, portal]);
   const campaignBreakdown = useMemo(() => getCreatorCampaignBreakdown(creatorId, portal), [creatorId, portal]);
   const allContent = useMemo(() => getAllContentForCreator(creatorId, portal), [creatorId, portal]);
@@ -221,6 +226,13 @@ export default function CreatorProfilePage() {
               <Package size={14} />
               Product Sales
             </button>
+            <button
+              className={`cp-perf-tab ${creatorPerfTab === 'invoices' ? 'cp-perf-tab--active' : ''}`}
+              onClick={() => setCreatorPerfTab('invoices')}
+            >
+              <FileText size={14} />
+              Invoices & Reimbursements ({creatorInvoices.length})
+            </button>
           </div>
         </div>
 
@@ -347,6 +359,140 @@ export default function CreatorProfilePage() {
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatNumber(row.unitsSold)}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>{formatCurrency(row.salesValue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Invoices & Reimbursements ── */}
+        {creatorPerfTab === 'invoices' && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+            {/* KPI strip */}
+            <div className="cp-product-kpis">
+              <div className="cp-product-kpi">
+                <div className="cp-product-kpi__icon" style={{ background: '#f2edfc' }}>
+                  <FileText size={18} color="#6538ea" />
+                </div>
+                <div>
+                  <div className="cp-product-kpi__label">Total Claimed</div>
+                  <div className="cp-product-kpi__val" style={{ color: '#6538ea' }}>
+                    {formatCurrency(creatorInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="cp-product-kpi">
+                <div className="cp-product-kpi__icon" style={{ background: '#fffbeb' }}>
+                  <Clock size={18} color="#d97706" />
+                </div>
+                <div>
+                  <div className="cp-product-kpi__label">Under Review</div>
+                  <div className="cp-product-kpi__val" style={{ color: '#d97706' }}>
+                    {creatorInvoices.filter(i => i.status === INVOICE_STATUSES.UNDER_REVIEW || i.status === 'Pending Verification').length} claims
+                  </div>
+                </div>
+              </div>
+
+              <div className="cp-product-kpi">
+                <div className="cp-product-kpi__icon" style={{ background: '#ecfdf5' }}>
+                  <CheckCircle2 size={18} color="#059669" />
+                </div>
+                <div>
+                  <div className="cp-product-kpi__label">Reimbursed & Paid</div>
+                  <div className="cp-product-kpi__val" style={{ color: '#059669' }}>
+                    {formatCurrency(creatorInvoices.filter(i => i.status === INVOICE_STATUSES.REIMBURSED).reduce((s, i) => s + (i.totalAmount || 0), 0))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoices Table */}
+            {creatorInvoices.length === 0 ? (
+              <div className="cp-product-empty">
+                <FileText size={32} color="var(--hp-text-tertiary)" />
+                <p>No reimbursement invoices submitted by this creator yet.</p>
+              </div>
+            ) : (
+              <div className="cp-product-table-wrap">
+                <table className="analytics__table">
+                  <thead>
+                    <tr>
+                      <th>Invoice & Order ID</th>
+                      <th>Campaign</th>
+                      <th>Category</th>
+                      <th>Date</th>
+                      <th style={{ textAlign: 'right' }}>Claimed Amount</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {creatorInvoices.map((inv) => (
+                      <tr key={inv.id} onClick={() => setSelectedInvoice(inv)} style={{ cursor: 'pointer' }}>
+                        <td>
+                          <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--hp-primary, #6538ea)' }}>
+                            {inv.invoiceNumber}
+                          </div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>
+                            Order #{inv.primaryOrderId || inv.invoiceNumber}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{inv.campaignName}</div>
+                        </td>
+                        <td>
+                          <span className="analytics__table-tag">{inv.expenseCategory}</span>
+                        </td>
+                        <td style={{ fontSize: 'var(--text-xs)', color: 'var(--hp-text-secondary)' }}>
+                          {formatDate(inv.orderDate || inv.invoiceDate)}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                          {formatCurrency(inv.totalOrderAmount || inv.totalAmount)}
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 12,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              background:
+                                inv.status === INVOICE_STATUSES.REIMBURSED
+                                  ? '#ecfdf5'
+                                  : inv.status === INVOICE_STATUSES.APPROVED
+                                  ? '#eef2ff'
+                                  : inv.status === INVOICE_STATUSES.REJECTED
+                                  ? '#fef2f2'
+                                  : '#fffbeb',
+                              color:
+                                inv.status === INVOICE_STATUSES.REIMBURSED
+                                  ? '#059669'
+                                  : inv.status === INVOICE_STATUSES.APPROVED
+                                  ? '#4f46e5'
+                                  : inv.status === INVOICE_STATUSES.REJECTED
+                                  ? '#dc2626'
+                                  : '#b45309',
+                            }}
+                          >
+                            {inv.status || 'Under Review'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedInvoice(inv);
+                            }}
+                          >
+                            Inspect
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -517,6 +663,14 @@ export default function CreatorProfilePage() {
         content={selectedContent}
         onClose={() => setSelectedContent(null)}
       />
+
+      {/* Invoice Detail Modal */}
+      {selectedInvoice && (
+        <InvoiceDetailModal
+          invoice={selectedInvoice}
+          onClose={() => setSelectedInvoice(null)}
+        />
+      )}
     </div>
   );
 }
