@@ -492,7 +492,6 @@ export default function CampaignDashboard() {
                       <th style={{ textAlign: 'left' }}>CATEGORY</th>
                       <th style={{ textAlign: 'right' }}>UNIT PRICE</th>
                       <th style={{ textAlign: 'right' }}>CREATORS SELLING</th>
-                      <th style={{ textAlign: 'right' }}>ORDERS</th>
                       <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
                       <th style={{ textAlign: 'right' }}>SALES VALUE</th>
                     </tr>
@@ -500,7 +499,7 @@ export default function CampaignDashboard() {
                   <tbody>
                     {productSales.productsList.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
+                        <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
                           No product sales tracked for this campaign yet.
                         </td>
                       </tr>
@@ -531,9 +530,6 @@ export default function CampaignDashboard() {
                             {prod.creatorCount} {prod.creatorCount === 1 ? 'Creator' : 'Creators'}
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
-                            {formatNumber(prod.orders)}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
                             {formatNumber(prod.unitsSold)}
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
@@ -555,8 +551,6 @@ export default function CampaignDashboard() {
                     <tr>
                       <th style={{ width: 44 }}>#</th>
                       <th style={{ textAlign: 'left' }}>CREATOR</th>
-                      <th style={{ textAlign: 'left' }}>TOP CONVERTING PRODUCT</th>
-                      <th style={{ textAlign: 'right' }}>ORDERS</th>
                       <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
                       <th style={{ textAlign: 'right' }}>SALES VALUE</th>
                     </tr>
@@ -564,7 +558,7 @@ export default function CampaignDashboard() {
                   <tbody>
                     {productSales.creatorsList.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
+                        <td colSpan={4} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
                           No creator sales tracked for this campaign yet.
                         </td>
                       </tr>
@@ -604,12 +598,6 @@ export default function CampaignDashboard() {
                                   <div style={{ fontSize: 11, color: '#6b7280' }}>{cr.creatorHandle}</div>
                                 </div>
                               </div>
-                            </td>
-                            <td style={{ textAlign: 'left', color: '#334155', fontWeight: 500 }}>
-                              {cr.topProduct}
-                            </td>
-                            <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
-                              {formatNumber(cr.orders)}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
                               {formatNumber(cr.unitsSold)}
