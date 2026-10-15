@@ -17,7 +17,7 @@ export default function Creators() {
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
   const [campaignCountFilter, setCampaignCountFilter] = useState('');
-  const [creatorsViewTab, setCreatorsViewTab] = useState('content'); // 'content' | 'product' | 'all'
+  const [creatorsViewTab, setCreatorsViewTab] = useState('content'); // 'content' | 'product'
 
   // Product sales per creator for this portal
   const productByCreator = useMemo(() => {
@@ -269,75 +269,7 @@ export default function Creators() {
     },
   ];
 
-  // All Metrics Columns (Content + Product Sales)
-  const allColumns = [
-    {
-      key: 'name',
-      label: 'CREATOR',
-      width: '230px',
-      render: renderCreatorCell,
-    },
-    {
-      key: 'platform',
-      label: 'PLATFORMS',
-      render: renderPlatformCell,
-    },
-    {
-      key: 'campaignsCount',
-      label: 'CAMPAIGNS',
-      render: (val) => (
-        <span style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>
-          {val} {val === 1 ? 'Campaign' : 'Campaigns'}
-        </span>
-      ),
-    },
-    {
-      key: 'contentCount',
-      label: 'APPROVED LIVE POSTS',
-      align: 'right',
-      render: (val) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatNumber(val || 0)}</span>,
-    },
-    {
-      key: 'views',
-      label: 'REACH',
-      align: 'right',
-      render: (val) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatCompactNumber(val || 0)}</span>,
-    },
-    {
-      key: 'productOrders',
-      label: 'ORDERS',
-      align: 'right',
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: '#0f172a' }}>
-          {val > 0 ? formatNumber(val) : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'productSalesValue',
-      label: 'SALES VALUE',
-      align: 'right',
-      render: (val) => (
-        <span style={{ fontWeight: 700, color: val > 0 ? '#059669' : '#94a3b8' }}>
-          {val > 0 ? formatCurrency(val) : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'action',
-      label: '',
-      align: 'right',
-      sortable: false,
-      render: renderActionCell,
-    },
-  ];
-
-  const activeColumns =
-    creatorsViewTab === 'product'
-      ? productColumns
-      : creatorsViewTab === 'all'
-      ? allColumns
-      : contentColumns;
+  const activeColumns = creatorsViewTab === 'product' ? productColumns : contentColumns;
 
   return (
     <div className="fade-in creators-page">
@@ -349,7 +281,7 @@ export default function Creators() {
       </div>
 
       {/* Aggregate summary cards matching pulse.haulpack.com */}
-      <div className={`creators-page__kpis ${creatorsViewTab === 'all' ? 'creators-page__kpis--4col' : ''}`}>
+      <div className="creators-page__kpis">
         <div className="pulse-kpi-card">
           <div className="pulse-kpi-card__header">
             <div className="pulse-kpi-card__icon">
@@ -403,24 +335,12 @@ export default function Creators() {
             </div>
           </>
         )}
-
-        {creatorsViewTab === 'all' && (
-          <div className="pulse-kpi-card">
-            <div className="pulse-kpi-card__header">
-              <div className="pulse-kpi-card__icon">
-                <ShoppingCart size={16} />
-              </div>
-              <span className="pulse-kpi-card__label">TOTAL PRODUCT SALES</span>
-            </div>
-            <div className="pulse-kpi-card__val">{formatCurrency(productTotals.salesValue)}</div>
-          </div>
-        )}
       </div>
 
       <div className="creators-page__toolbar">
         <SearchBar placeholder="Search creator by name or @handle..." onSearch={handleSearch} />
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Content / Product Sales / All toggle */}
+          {/* Content / Product Sales toggle */}
           <div className="cp-perf-tabs">
             <button
               className={`cp-perf-tab ${creatorsViewTab === 'content' ? 'cp-perf-tab--active' : ''}`}
@@ -435,13 +355,6 @@ export default function Creators() {
             >
               <Package size={13} />
               Product Sales
-            </button>
-            <button
-              className={`cp-perf-tab ${creatorsViewTab === 'all' ? 'cp-perf-tab--active' : ''}`}
-              onClick={() => setCreatorsViewTab('all')}
-            >
-              <Layers size={13} />
-              All Metrics
             </button>
           </div>
           <FilterDropdown

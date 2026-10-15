@@ -30,20 +30,14 @@
   margin-bottom: var(--space-5);
 }
 
-.creators-page__kpis--4col {
-  grid-template-columns: repeat(4, 1fr);
-}
-
 @media (max-width: 1024px) {
-  .creators-page__kpis,
-  .creators-page__kpis--4col {
+  .creators-page__kpis {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 600px) {
-  .creators-page__kpis,
-  .creators-page__kpis--4col {
+  .creators-page__kpis {
     grid-template-columns: 1fr;
   }
 }
