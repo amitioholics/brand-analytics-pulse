@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search } from 'lucide-react';
 
-export default function SearchBar({ placeholder = 'Search...', onSearch, value: controlledValue }) {
+export default function SearchBar({ placeholder = 'Search...', onSearch, onChange, value: controlledValue, style }) {
   const [value, setValue] = useState(controlledValue || '');
+
+  const handler = onSearch || onChange;
 
   useEffect(() => {
     if (controlledValue !== undefined) setValue(controlledValue);
@@ -11,10 +13,10 @@ export default function SearchBar({ placeholder = 'Search...', onSearch, value: 
   // Debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      onSearch?.(value);
-    }, 300);
+      handler?.(value);
+    }, 250);
     return () => clearTimeout(timer);
-  }, [value, onSearch]);
+  }, [value, handler]);
 
   return (
     <div style={{
@@ -26,7 +28,9 @@ export default function SearchBar({ placeholder = 'Search...', onSearch, value: 
       borderRadius: 'var(--radius-md)',
       background: 'var(--hp-white)',
       minWidth: 220,
-      maxWidth: 320,
+      maxWidth: 460,
+      width: '100%',
+      ...style,
     }}>
       <Search size={16} style={{ color: 'var(--hp-text-tertiary)', flexShrink: 0 }} />
       <input

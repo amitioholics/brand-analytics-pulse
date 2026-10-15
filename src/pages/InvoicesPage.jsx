@@ -65,17 +65,26 @@ export default function InvoicesPage() {
       // Campaign
       if (campaignFilter !== 'all' && inv.campaignId !== campaignFilter) return false;
 
-      // Search
+      // Search by creator name, order ID, invoice number
       if (search) {
-        const q = search.toLowerCase();
+        const q = search.toLowerCase().trim();
+        const cleanQ = q.replace(/^#/, '').replace(/^order\s*#?/i, '').replace(/^inv-?/i, '').trim();
+
         return (
-          inv.invoiceNumber.toLowerCase().includes(q) ||
-          (inv.primaryOrderId && inv.primaryOrderId.toLowerCase().includes(q)) ||
-          inv.creatorName.toLowerCase().includes(q) ||
-          inv.creatorHandle.toLowerCase().includes(q) ||
-          inv.campaignName.toLowerCase().includes(q) ||
-          (inv.description && inv.description.toLowerCase().includes(q)) ||
-          (inv.orders && inv.orders.some(o => o.orderId?.toLowerCase().includes(q) || o.invoiceNumber?.toLowerCase().includes(q) || o.productName?.toLowerCase().includes(q)))
+          inv.creatorName?.toLowerCase().includes(q) ||
+          inv.creatorHandle?.toLowerCase().includes(q) ||
+          inv.invoiceNumber?.toLowerCase().includes(q) ||
+          (cleanQ && inv.invoiceNumber?.toLowerCase().includes(cleanQ)) ||
+          inv.primaryOrderId?.toLowerCase().includes(q) ||
+          (cleanQ && inv.primaryOrderId?.toLowerCase().includes(cleanQ)) ||
+          inv.campaignName?.toLowerCase().includes(q) ||
+          (inv.orders && inv.orders.some(o =>
+            o.orderId?.toLowerCase().includes(q) ||
+            (cleanQ && o.orderId?.toLowerCase().includes(cleanQ)) ||
+            o.invoiceNumber?.toLowerCase().includes(q) ||
+            (cleanQ && o.invoiceNumber?.toLowerCase().includes(cleanQ)) ||
+            o.productName?.toLowerCase().includes(q)
+          ))
         );
       }
 
@@ -249,8 +258,9 @@ export default function InvoicesPage() {
           <div className="invoices-page__search-wrap">
             <SearchBar
               value={search}
+              onSearch={setSearch}
               onChange={setSearch}
-              placeholder="Search by creator, invoice #, or campaign..."
+              placeholder="Search by creator name, order ID, invoice number..."
             />
           </div>
 
