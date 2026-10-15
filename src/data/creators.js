@@ -10,6 +10,11 @@ const AVATARS = [
 function avatar(idx) { return AVATARS[idx % AVATARS.length]; }
 
 export const creators = [
+  { id: 'cr_bhumi', name: 'Bhumi Nirmal', socialHandle: '@bhuminirmal', platform: 'Instagram', followerCount: 0, avatarColor: '#f59e0b', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80' },
+  { id: 'cr_jyoti_y', name: 'Jyoti Yadav', socialHandle: '@jyotiyadav', platform: 'Instagram', followerCount: 0, avatarColor: '#10b981', avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&h=120&q=80' },
+  { id: '69134e979b7be903cf956b38', name: 'Supriya Gaikwad', socialHandle: '@supriyagaikwad', platform: 'Instagram', followerCount: 0, avatarColor: '#3b82f6', avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&h=120&q=80' },
+  { id: 'cr_ashima', name: 'Ashima', socialHandle: '@ashima', platform: 'Instagram', followerCount: 0, avatarColor: '#6366f1' },
+  { id: 'cr_jyoti_b', name: 'Jyoti Bhatia', socialHandle: '@jyotibhatia', platform: 'Instagram', followerCount: 0, avatarColor: '#ec4899', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120&q=80' },
   { id: 'cr_001', name: 'Aditi Sharma', socialHandle: '@aditisharma', platform: 'Instagram', followerCount: 125000, avatarColor: avatar(0) },
   { id: 'cr_002', name: 'Rahul Verma', socialHandle: '@rahulverma_yt', platform: 'YouTube', followerCount: 82000, avatarColor: avatar(1) },
   { id: 'cr_003', name: 'Priya Patel', socialHandle: '@priyapatel', platform: 'Instagram', followerCount: 310000, avatarColor: avatar(2) },
@@ -73,7 +78,24 @@ export const creators = [
 ];
 
 export function getCreatorById(id) {
-  return creators.find(c => c.id === id) || null;
+  const found = creators.find(c => c.id === id);
+  if (found) return found;
+  if (id && id.startsWith('cr_hs_')) {
+    const idx = parseInt(id.replace('cr_hs_', ''), 10) || 0;
+    const FIRST_NAMES = ['Ananya', 'Rohan', 'Kavya', 'Tarun', 'Pooja', 'Sameer', 'Tanvi', 'Kunal', 'Simran', 'Aakash', 'Diya', 'Harsh', 'Radhika', 'Nikhil'];
+    const LAST_NAMES = ['Sharma', 'Kapoor', 'Malhotra', 'Gupta', 'Verma', 'Mehta', 'Nair', 'Patel', 'Reddy', 'Singh', 'Joshi', 'Chopra'];
+    const fn = FIRST_NAMES[idx % FIRST_NAMES.length];
+    const ln = LAST_NAMES[Math.floor(idx / FIRST_NAMES.length) % LAST_NAMES.length];
+    return {
+      id,
+      name: `${fn} ${ln}`,
+      socialHandle: `@${fn.toLowerCase()}_${ln.toLowerCase()}`,
+      platform: 'Instagram',
+      followerCount: 0,
+      avatarColor: avatar(idx),
+    };
+  }
+  return null;
 }
 
 /* ============================================
@@ -308,10 +330,36 @@ function generateCampaignCreators() {
     });
   });
 
+  // ---------- HaulPack x Amazon Head & Shoulders (149 Creators matching pulse.haulpack.com) ----------
+  const hsTopCreatorIds = [
+    'cr_bhumi',
+    'cr_jyoti_y',
+    '69134e979b7be903cf956b38',
+    'cr_ashima',
+    'cr_jyoti_b',
+  ];
+  const hsCreatorIds = [...hsTopCreatorIds];
+  for (let i = 5; i < 149; i++) {
+    hsCreatorIds.push(`cr_hs_${i}`);
+  }
+  hsCreatorIds.forEach((cId) => {
+    relationships.push({
+      campaignId: '6ace2b3abe742272b6135d8e',
+      creatorId: cId,
+      status: 'Active',
+      joinedAt: '2026-10-13',
+      registeredAt: '2026-10-13',
+      platforms: '—',
+      deliverablesCount: 0,
+      reach: 0,
+    });
+  });
+
   return relationships;
 }
 
 export const campaignCreators = generateCampaignCreators();
+
 
 export function getCreatorsForCampaign(campaignId) {
   const rels = campaignCreators.filter(cc => cc.campaignId === campaignId);

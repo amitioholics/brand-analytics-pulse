@@ -20,37 +20,6 @@ export default function Creators() {
   const [campaignCountFilter, setCampaignCountFilter] = useState('');
   const [creatorsViewTab, setCreatorsViewTab] = useState('content'); // 'content' | 'product'
 
-  // Enrich creators with metrics strictly for active portal with zero cross-portal linkage
-  const enrichedCreators = useMemo(() => {
-    return creators
-      .map(c => {
-        const metrics = getCreatorOverallMetrics(c.id, portal);
-        return {
-          ...c,
-          campaignsCount: metrics.campaignsCount,
-          contentCount: metrics.contentCount,
-          views: metrics.views,
-          clicks: metrics.clicks,
-          sales: metrics.sales,
-          orders: metrics.orders,
-        };
-      })
-      .filter(c => c.campaignsCount > 0);
-  }, [portal]);
-
-  // Summary aggregates
-  const totals = useMemo(() => {
-    return enrichedCreators.reduce(
-      (acc, c) => {
-        acc.content += c.contentCount;
-        acc.views += c.views;
-        acc.sales += c.sales;
-        return acc;
-      },
-      { content: 0, views: 0, sales: 0 }
-    );
-  }, [enrichedCreators]);
-
   // Product sales per creator for this portal
   const productByCreator = useMemo(() => {
     const all = getAggregatedProductSales(portal);
@@ -64,6 +33,42 @@ export default function Creators() {
     });
     return map;
   }, [portal]);
+
+  // Enrich creators with metrics strictly for active portal with zero cross-portal linkage
+  const enrichedCreators = useMemo(() => {
+    return creators
+      .map(c => {
+        const metrics = getCreatorOverallMetrics(c.id, portal);
+        const prod = productByCreator[c.id];
+        return {
+          ...c,
+          campaignsCount: metrics.campaignsCount,
+          contentCount: metrics.contentCount,
+          views: metrics.views,
+          clicks: metrics.clicks,
+          sales: metrics.sales,
+          orders: metrics.orders,
+          productOrders: prod ? prod.orders : 0,
+          productUnitsSold: prod ? prod.unitsSold : 0,
+          productSalesValue: prod ? prod.salesValue : 0,
+          productCount: prod ? prod.products.size : 0,
+        };
+      })
+      .filter(c => c.campaignsCount > 0);
+  }, [portal, productByCreator]);
+
+  // Summary aggregates
+  const totals = useMemo(() => {
+    return enrichedCreators.reduce(
+      (acc, c) => {
+        acc.content += c.contentCount;
+        acc.views += c.views;
+        acc.sales += c.sales;
+        return acc;
+      },
+      { content: 0, views: 0, sales: 0 }
+    );
+  }, [enrichedCreators]);
 
   const filtered = useMemo(() => {
     let result = enrichedCreators;
@@ -273,31 +278,34 @@ export default function Creators() {
       },
     },
     {
-      key: 'id',
+      key: 'productOrders',
       label: 'Orders',
       align: 'right',
-      render: (_, row) => {
-        const p = productByCreator[row.id];
-        return <span style={{ fontWeight: 700 }}>{p ? formatNumber(p.unitsSold) : '—'}</span>;
-      },
+      render: (val) => (
+        <span style={{ fontWeight: 700, color: 'var(--hp-text-primary)' }}>
+          {val > 0 ? formatNumber(val) : '—'}
+        </span>
+      ),
     },
     {
-      key: 'id',
+      key: 'productSalesValue',
       label: 'Sales Value',
       align: 'right',
-      render: (_, row) => {
-        const p = productByCreator[row.id];
-        return <span style={{ fontWeight: 700, color: '#059669' }}>{p ? formatCurrency(p.salesValue) : '—'}</span>;
-      },
+      render: (val) => (
+        <span style={{ fontWeight: 700, color: val > 0 ? '#059669' : 'var(--hp-text-secondary)' }}>
+          {val > 0 ? formatCurrency(val) : '—'}
+        </span>
+      ),
     },
     {
-      key: 'id',
+      key: 'productCount',
       label: 'Products',
       align: 'right',
-      render: (_, row) => {
-        const p = productByCreator[row.id];
-        return <span style={{ fontWeight: 600 }}>{p ? p.products.size : '—'}</span>;
-      },
+      render: (val) => (
+        <span style={{ fontWeight: 600, color: 'var(--hp-text-secondary)' }}>
+          {val > 0 ? val : '—'}
+        </span>
+      ),
     },
     {
       key: 'action',
@@ -393,6 +401,7 @@ export default function Creators() {
       </div>
 
       <DataTable
+        key={creatorsViewTab}
         columns={creatorsViewTab === 'product' ? productColumns : columns}
         data={filtered}
         pageSize={20}

@@ -67,9 +67,9 @@ export default function DataTable({
         <table className="data-table">
           <thead>
             <tr>
-              {columns.map(col => (
+              {columns.map((col, colIdx) => (
                 <th
-                  key={col.key}
+                  key={col.key ? `${col.key}-${colIdx}` : colIdx}
                   className={`data-table__th ${col.align === 'right' ? 'data-table__th--right' : ''} ${sortable && col.sortable !== false ? 'data-table__th--sortable' : ''}`}
                   style={col.width ? { width: col.width, minWidth: col.width } : undefined}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
@@ -95,9 +95,9 @@ export default function DataTable({
                 className={`data-table__row ${onRowClick ? 'data-table__row--clickable' : ''}`}
                 onClick={() => onRowClick?.(row)}
               >
-                {columns.map(col => (
+                {columns.map((col, colIdx) => (
                   <td
-                    key={col.key}
+                    key={col.key ? `${col.key}-${colIdx}` : colIdx}
                     className={`data-table__td ${col.align === 'right' ? 'data-table__td--right' : ''}`}
                   >
                     {col.render ? col.render(row[col.key], row) : row[col.key]}

@@ -406,7 +406,7 @@ export default function CreatorDetail() {
             <table className="analytics__table">
               <thead>
                 <tr>
-                  <th>Invoice #</th>
+                  <th>Order ID</th>
                   <th>Category</th>
                   <th>Submitted Date</th>
                   <th style={{ textAlign: 'right' }}>Claimed Amount</th>
@@ -420,9 +420,6 @@ export default function CreatorDetail() {
                   <tr key={inv.id} onClick={() => setSelectedInvoice(inv)} style={{ cursor: 'pointer' }}>
                     <td>
                       <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--hp-primary, #6538ea)' }}>
-                        {inv.invoiceNumber}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>
                         Order #{inv.primaryOrderId || inv.invoiceNumber}
                       </div>
                     </td>
@@ -446,24 +443,20 @@ export default function CreatorDetail() {
                           fontSize: 11,
                           fontWeight: 700,
                           background:
-                            inv.status === INVOICE_STATUSES.REIMBURSED
-                              ? '#ecfdf5'
-                              : inv.status === INVOICE_STATUSES.APPROVED
+                            inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified' || inv.status === 'Reimbursed'
                               ? '#eef2ff'
                               : inv.status === INVOICE_STATUSES.REJECTED
                               ? '#fef2f2'
                               : '#fffbeb',
                           color:
-                            inv.status === INVOICE_STATUSES.REIMBURSED
-                              ? '#059669'
-                              : inv.status === INVOICE_STATUSES.APPROVED
+                            inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified' || inv.status === 'Reimbursed'
                               ? '#4f46e5'
                               : inv.status === INVOICE_STATUSES.REJECTED
                               ? '#dc2626'
                               : '#b45309',
                         }}
                       >
-                        {inv.status}
+                        {inv.status === 'Reimbursed' ? 'Approved' : (inv.status || 'Under Review')}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>

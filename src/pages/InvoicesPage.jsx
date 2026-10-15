@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
-  FileText, CheckCircle2, Clock, XCircle, DollarSign,
-  Search, Filter, Download, ExternalLink, Eye, ChevronRight,
-  Sparkles, AlertCircle, ShoppingBag, Landmark, ArrowUpRight,
-  Smartphone, Check
+  FileText,  CheckCircle2, Clock, XCircle, DollarSign,
+  Search, Filter, Download, ExternalLink, ChevronRight,
+  Sparkles, AlertCircle, ShoppingBag, Landmark, ArrowUpRight
 } from 'lucide-react';
 import { useInvoices } from '../context/InvoiceContext';
 import { usePortal } from '../context/PortalContext';
@@ -12,16 +11,13 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import Breadcrumb from '../components/common/Breadcrumb';
 import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
-import ExportButton from '../components/common/ExportButton';
 import EmptyState from '../components/common/EmptyState';
 import InvoiceDetailModal from '../components/invoices/InvoiceDetailModal';
-import CreatorAppSimulatorModal from '../components/invoices/CreatorAppSimulatorModal';
 import './InvoicesPage.css';
 
 export default function InvoicesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { portal, isBrandConnect } = usePortal();
-  const [showSimulator, setShowSimulator] = useState(false);
   const {
     invoices,
     pendingCount,
@@ -32,7 +28,6 @@ export default function InvoicesPage() {
     totalPendingAmount,
     totalApprovedAmount,
     totalReimbursedAmount,
-    resetInvoices,
     INVOICE_STATUSES,
   } = useInvoices();
 
@@ -40,7 +35,6 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all');
   const [campaignFilter, setCampaignFilter] = useState(() => searchParams.get('campaign') || 'all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
 
   // Sync with searchParams if changed
   useEffect(() => {
@@ -60,30 +54,16 @@ export default function InvoicesPage() {
     ];
   }, [invoices]);
 
-  // Unique categories from invoices
-  const categoryOptions = useMemo(() => {
-    const set = new Set();
-    invoices.forEach(inv => set.add(inv.expenseCategory));
-    return [
-      { value: 'all', label: 'All Expense Categories' },
-      ...Array.from(set).map(cat => ({ value: cat, label: cat })),
-    ];
-  }, [invoices]);
-
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter(inv => {
       // Status
       if ((statusFilter === 'pending' || statusFilter === 'under_review') && inv.status !== INVOICE_STATUSES.UNDER_REVIEW && inv.status !== 'Pending Verification') return false;
-      if (statusFilter === 'approved' && inv.status !== INVOICE_STATUSES.APPROVED && inv.status !== INVOICE_STATUSES.VERIFIED) return false;
-      if (statusFilter === 'reimbursed' && inv.status !== INVOICE_STATUSES.REIMBURSED) return false;
+      if (statusFilter === 'approved' && inv.status !== INVOICE_STATUSES.APPROVED && inv.status !== INVOICE_STATUSES.VERIFIED && inv.status !== 'Reimbursed') return false;
       if (statusFilter === 'rejected' && inv.status !== INVOICE_STATUSES.REJECTED) return false;
 
       // Campaign
       if (campaignFilter !== 'all' && inv.campaignId !== campaignFilter) return false;
-
-      // Category
-      if (categoryFilter !== 'all' && inv.expenseCategory !== categoryFilter) return false;
 
       // Search
       if (search) {
@@ -101,20 +81,13 @@ export default function InvoicesPage() {
 
       return true;
     });
-  }, [invoices, statusFilter, campaignFilter, categoryFilter, search, INVOICE_STATUSES]);
+  }, [invoices, statusFilter, campaignFilter, search, INVOICE_STATUSES]);
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case INVOICE_STATUSES.REIMBURSED:
-        return {
-          bg: '#ecfdf5',
-          color: '#059669',
-          border: '#a7f3d0',
-          label: 'Reimbursed',
-          icon: CheckCircle2,
-        };
       case INVOICE_STATUSES.APPROVED:
       case INVOICE_STATUSES.VERIFIED:
+      case 'Reimbursed':
         return {
           bg: '#eef2ff',
           color: '#4f46e5',
@@ -168,43 +141,6 @@ export default function InvoicesPage() {
             <span>Creator Reimbursements & Invoice Verification</span>
           </div>
           <h1 className="invoices-page__title">Creator Reimbursement Invoices</h1>
-          <p className="invoices-page__subtitle">
-            Verify submitted invoices, inspect attached purchase receipts, and track reimbursement requests directly in Pulse.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => setShowSimulator(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #6538ea 0%, #7c3aed 100%)',
-              color: '#ffffff',
-              border: 'none',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(101, 56, 234, 0.25)',
-            }}
-          >
-            <Smartphone size={15} />
-            <span>Simulate Creator App (Figma)</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={resetInvoices}
-            title="Reset to default mock invoice records"
-            style={{ fontSize: 12 }}
-          >
-            Reset Demo Data
-          </button>
         </div>
       </div>
 
@@ -254,22 +190,6 @@ export default function InvoicesPage() {
             <span>{approvedCount} verified by brand operations</span>
           </div>
         </div>
-
-        {/* Reimbursed */}
-        <div className="invoices-page__kpi-card">
-          <div className="invoices-page__kpi-top">
-            <span className="invoices-page__kpi-label">REIMBURSED & SETTLED</span>
-            <div className="invoices-page__kpi-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
-              <Landmark size={18} />
-            </div>
-          </div>
-          <div className="invoices-page__kpi-value" style={{ color: '#059669' }}>
-            {formatCurrency(totalReimbursedAmount)}
-          </div>
-          <div className="invoices-page__kpi-sub">
-            <span>{reimbursedCount} settled with bank UTR</span>
-          </div>
-        </div>
       </div>
 
       {/* Filter and Control Bar */}
@@ -315,16 +235,6 @@ export default function InvoicesPage() {
 
           <button
             type="button"
-            className={`invoices-page__tab-btn ${statusFilter === 'reimbursed' ? 'invoices-page__tab-btn--active' : ''}`}
-            onClick={() => handleStatusTab('reimbursed')}
-          >
-            <CheckCircle2 size={14} color="#059669" />
-            <span>Reimbursed</span>
-            <span className="invoices-page__tab-badge">{reimbursedCount}</span>
-          </button>
-
-          <button
-            type="button"
             className={`invoices-page__tab-btn ${statusFilter === 'rejected' ? 'invoices-page__tab-btn--active' : ''}`}
             onClick={() => handleStatusTab('rejected')}
           >
@@ -350,28 +260,6 @@ export default function InvoicesPage() {
               onChange={setCampaignFilter}
               options={campaignOptions}
             />
-
-            <FilterDropdown
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              options={categoryOptions}
-            />
-
-            <ExportButton
-              data={filteredInvoices.map(inv => ({
-                InvoiceNumber: inv.invoiceNumber,
-                Creator: inv.creatorName,
-                Handle: inv.creatorHandle,
-                Campaign: inv.campaignName,
-                Category: inv.expenseCategory,
-                SubmittedDate: inv.submittedAt,
-                Amount: inv.totalAmount,
-                Status: inv.status,
-                VerifiedBy: inv.verifiedBy || '-',
-                PaymentRef: inv.paymentReference || '-',
-              }))}
-              filename="haulpack-pulse-creator-invoices"
-            />
           </div>
         </div>
       </div>
@@ -384,7 +272,6 @@ export default function InvoicesPage() {
             setSearch('');
             setStatusFilter('all');
             setCampaignFilter('all');
-            setCategoryFilter('all');
           }}
         />
       ) : (
@@ -392,14 +279,12 @@ export default function InvoicesPage() {
           <table className="invoices-table">
             <thead>
               <tr>
-                <th style={{ width: '18%' }}>INVOICE & ORDER ID</th>
-                <th style={{ width: '20%' }}>CREATOR</th>
-                <th style={{ width: '20%' }}>CAMPAIGN & BRIEF</th>
-                <th style={{ width: '13%' }}>CLAIMED AMOUNT</th>
-                <th style={{ width: '10%' }}>DELIVERY</th>
-                <th style={{ width: '9%' }}>PROOFS</th>
+                <th style={{ width: '28%' }}>CREATOR</th>
+                <th style={{ width: '28%' }}>CAMPAIGN</th>
+                <th style={{ width: '16%' }}>CLAIMED AMOUNT</th>
+                <th style={{ width: '12%' }}>INVOICES</th>
                 <th style={{ width: '12%' }}>STATUS</th>
-                <th style={{ width: '8%', textAlign: 'right' }}>ACTION</th>
+                <th style={{ width: '4%', textAlign: 'right' }}></th>
               </tr>
             </thead>
             <tbody>
@@ -412,26 +297,6 @@ export default function InvoicesPage() {
                     key={invoice.id}
                     onClick={() => setSelectedInvoice(invoice)}
                   >
-                    {/* Invoice ID & Order ID */}
-                    <td>
-                      <div className="invoices-table__inv-cell">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span className="invoices-table__inv-num">{invoice.invoiceNumber}</span>
-                          {invoice.orders && invoice.orders.length > 1 && (
-                            <span style={{ background: '#f1f5f9', color: '#475569', fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4 }}>
-                              {invoice.orders.length} Orders
-                            </span>
-                          )}
-                        </div>
-                        <span className="invoices-table__inv-date" style={{ color: '#475569', fontWeight: 600 }}>
-                          Order #{invoice.primaryOrderId || invoice.invoiceNumber}
-                        </span>
-                        <span className="invoices-table__inv-date" style={{ fontSize: 11, color: '#94a3b8' }}>
-                          📅 {formatDate(invoice.orderDate || invoice.invoiceDate)}
-                        </span>
-                      </div>
-                    </td>
-
                     {/* Creator */}
                     <td>
                       <div className="invoices-table__creator-cell">
@@ -462,26 +327,11 @@ export default function InvoicesPage() {
                       </div>
                     </td>
 
-                    {/* Campaign & Category */}
+                    {/* Campaign */}
                     <td>
                       <div>
                         <div style={{ fontWeight: 600, color: '#0f172a', fontSize: 13 }}>
                           {invoice.campaignName}
-                        </div>
-                        <div style={{ marginTop: 3 }}>
-                          <span
-                            style={{
-                              background: 'var(--hp-primary-lighter, #f2edfc)',
-                              color: 'var(--hp-primary, #6538ea)',
-                              padding: '2px 8px',
-                              borderRadius: 4,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              display: 'inline-block',
-                            }}
-                          >
-                            {invoice.expenseCategory}
-                          </span>
                         </div>
                       </div>
                     </td>
@@ -492,38 +342,21 @@ export default function InvoicesPage() {
                         <span className="invoices-table__amount-val">
                           {formatCurrency(invoice.totalOrderAmount || invoice.totalAmount)}
                         </span>
-                        <span className="invoices-table__amount-tax">
-                          Subtotal {formatCurrency(invoice.subtotal || invoice.totalOrderAmount || invoice.totalAmount)}
-                        </span>
                       </div>
                     </td>
 
-                    {/* Delivery Status */}
-                    <td>
-                      <span
-                        style={{
-                          background: '#ecfdf5',
-                          color: '#065f46',
-                          border: '1px solid #a7f3d0',
-                          padding: '2px 8px',
-                          borderRadius: 999,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                      >
-                        <Check size={11} />
-                        <span>Received</span>
-                      </span>
-                    </td>
 
-                    {/* Proofs / Attachments */}
+
+                    {/* Invoices / Attachments */}
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#475569' }}>
                         <FileText size={14} color="var(--hp-primary, #6538ea)" />
-                        <span style={{ fontWeight: 600 }}>{invoice.attachments?.length || invoice.orders?.length || 1} proofs</span>
+                        <span style={{ fontWeight: 600 }}>
+                          {(() => {
+                            const count = invoice.attachments?.length || invoice.orders?.length || 1;
+                            return `${count} ${count === 1 ? 'invoice' : 'invoices'}`;
+                          })()}
+                        </span>
                       </div>
                     </td>
 
@@ -548,19 +381,11 @@ export default function InvoicesPage() {
                       </span>
                     </td>
 
-                    {/* Action */}
-                    <td style={{ textAlign: 'right' }}>
-                      <button
-                        type="button"
-                        className="invoices-table__action-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedInvoice(invoice);
-                        }}
-                      >
-                        <Eye size={13} />
-                        <span>Inspect</span>
-                      </button>
+                    {/* Arrow */}
+                    <td style={{ textAlign: 'right', paddingRight: '16px' }}>
+                      <span className="invoices-table__arrow">
+                        <ChevronRight size={18} />
+                      </span>
                     </td>
                   </tr>
                 );
@@ -578,16 +403,6 @@ export default function InvoicesPage() {
           onRefresh={() => {
             const updated = invoices.find(inv => inv.id === selectedInvoice.id);
             if (updated) setSelectedInvoice(updated);
-          }}
-        />
-      )}
-
-      {/* Figma Creator App Mobile Simulator Modal */}
-      {showSimulator && (
-        <CreatorAppSimulatorModal
-          onClose={() => setShowSimulator(false)}
-          onSubmitted={(newClaim) => {
-            setSelectedInvoice(newClaim);
           }}
         />
       )}

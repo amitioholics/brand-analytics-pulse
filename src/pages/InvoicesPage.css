@@ -48,17 +48,11 @@
 
 .invoices-page__kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
-@media (max-width: 1024px) {
-  .invoices-page__kpis {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .invoices-page__kpis {
     grid-template-columns: 1fr;
   }
@@ -322,4 +316,21 @@
 .invoices-table__action-btn:hover {
   background: var(--hp-primary, #6538ea);
   color: #ffffff;
+}
+
+.invoices-table__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #94a3b8;
+  transition: all 0.15s ease;
+}
+
+.invoices-table tr:hover .invoices-table__arrow {
+  color: var(--hp-primary, #6538ea);
+  background: var(--hp-primary-lighter, #f2edfc);
+  transform: translateX(3px);
 }

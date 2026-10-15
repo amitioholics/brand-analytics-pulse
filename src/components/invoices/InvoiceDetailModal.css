@@ -6,14 +6,21 @@
 .invoice-modal-overlay {
   position: fixed;
   inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(14, 11, 33, 0.72);
   backdrop-filter: blur(8px);
-  z-index: 210;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   animation: invFadeIn 0.2s ease-out forwards;
+  box-sizing: border-box;
 }
 
 @keyframes invFadeIn {
@@ -25,15 +32,16 @@
   background: #ffffff;
   border-radius: 20px;
   width: 100%;
-  max-width: 1100px;
-  height: 90vh;
-  max-height: 860px;
+  max-width: 840px;
+  height: 85vh;
+  max-height: 820px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 25px 60px -10px rgba(18, 12, 45, 0.35), 0 10px 24px -4px rgba(18, 12, 45, 0.12);
   border: 1px solid var(--hp-border, #eae7f2);
   overflow: hidden;
   animation: invModalScale 0.22s ease-out forwards;
+  margin: auto;
 }
 
 @keyframes invModalScale {
@@ -145,20 +153,13 @@
   border-color: #fca5a5;
 }
 
-/* Body Split */
+/* Body Layout */
 .invoice-modal__body {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
   background: #f8fafc;
-}
-
-@media (max-width: 900px) {
-  .invoice-modal__body {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-  }
 }
 
 /* Left: Invoice Paper Preview */
@@ -1083,21 +1084,284 @@
   color: var(--hp-primary, #6538ea);
 }
 
-/* Total Order Amount Sticky Footer */
+/* Total Order Amount Sticky Footer with Centered Actions */
 .invoice-modal__figma-footer {
+  position: sticky;
+  bottom: 0;
   background: #ffffff;
   border: 1.5px solid #e2e8f0;
   border-radius: 14px;
-  padding: 14px 18px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  gap: 16px;
+  box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
+  z-index: 10;
+  margin-top: 8px;
+}
+
+.invoice-modal__footer-col--left {
+  flex: 1.1;
+  display: flex;
+  flex-direction: column;
+}
+
+.invoice-modal__footer-col--center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.invoice-modal__footer-col--right {
+  flex: 0.9;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .invoice-modal__figma-footer-total {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
   color: #0f172a;
+  line-height: 1.2;
+}
+
+/* Approve All Button */
+.invoice-modal__approve-all-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  background: var(--hp-primary, #6538ea);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(101, 56, 234, 0.25);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.invoice-modal__approve-all-btn:hover {
+  background: var(--hp-primary-dark, #4926b8);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(101, 56, 234, 0.35);
+}
+
+.invoice-modal__approve-all-btn:active {
+  transform: translateY(0);
+}
+
+.invoice-modal__approve-all-btn--compact {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(101, 56, 234, 0.2);
+}
+
+/* Order-Level Action Bar in Order Card */
+.invoice-modal__order-action-bar {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.invoice-modal__order-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.invoice-modal__order-action-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.invoice-modal__order-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.invoice-modal__order-btn--approve {
+  background: #16a34a;
+  color: #ffffff;
+  border: 1px solid #15803d;
+}
+
+.invoice-modal__order-btn--approve:hover {
+  background: #15803d;
+}
+
+.invoice-modal__order-btn--reject {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.invoice-modal__order-btn--reject:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.invoice-modal__order-reject-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.invoice-modal__order-select {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.invoice-modal__order-remarks-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  resize: vertical;
+  min-height: 52px;
+  box-sizing: border-box;
+}
+
+.invoice-modal__order-remarks-input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
+}
+
+.invoice-modal__order-cancel-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.invoice-modal__order-cancel-btn:hover {
+  color: #0f172a;
+}
+
+.invoice-modal__order-decided {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.invoice-modal__order-decided--approved {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.invoice-modal__order-decided--rejected {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.invoice-modal__order-change-link {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 4px;
+}
+
+.invoice-modal__order-change-link:hover {
+  color: #0f172a;
+}
+
+/* Right Panel: Order Review List */
+.invoice-modal__order-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invoice-modal__order-review-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.invoice-modal__order-review-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.invoice-modal__order-review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.invoice-modal__order-review-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invoice-modal__order-summary-box {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.invoice-modal__order-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #475569;
+  padding: 5px 0;
+}
+
+.invoice-modal__order-summary-row--total {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 6px;
+  padding-top: 8px;
+  font-weight: 800;
+  color: #0f172a;
+  font-size: 13px;
 }
 

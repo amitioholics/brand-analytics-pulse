@@ -1,673 +1,454 @@
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FileVideo, Eye, MousePointerClick, ShoppingCart,
-  ExternalLink, LinkIcon, ArrowLeft, ArrowUpRight, Layers,
-  Package, TrendingUp, BarChart2, FileText, CheckCircle2, Clock, Receipt
+  Users, FileVideo, Eye, Heart, Sparkles, Megaphone,
+  ArrowUpDown, ExternalLink, Package, Receipt, ArrowLeft,
+  CheckCircle2, Clock, Camera
 } from 'lucide-react';
 import { getCreatorById } from '../data/creators';
 import { getCreatorOverallMetrics, getCreatorCampaignBreakdown } from '../data/metrics';
-import { getAggregatedProductSales, getProductById } from '../data/productSales';
+import { getAggregatedProductSales, getProductById, productSalesRecords } from '../data/productSales';
 import { getAllContentForCreator } from '../data/content';
 import { useInvoices } from '../context/InvoiceContext';
-import { formatNumber, formatCurrency, formatPercent, formatDate, getInitials, getSocialUrl } from '../utils/formatters';
-import KPICard from '../components/common/KPICard';
-import StatusBadge from '../components/common/StatusBadge';
-import SearchBar from '../components/common/SearchBar';
-import FilterDropdown from '../components/common/FilterDropdown';
-import ContentDetailDrawer from '../components/content/ContentDetailDrawer';
+import { formatNumber, formatCurrency, formatDateRange, getInitials } from '../utils/formatters';
 import InvoiceDetailModal from '../components/invoices/InvoiceDetailModal';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { usePortal } from '../context/PortalContext';
 import './CreatorProfilePage.css';
-
-const CHART_METRICS = [
-  { key: 'views', label: 'Views', color: '#655bef', format: formatNumber },
-  { key: 'clicks', label: 'Clicks', color: '#10b981', format: formatNumber },
-  { key: 'sales', label: 'Sales (₹)', color: '#059669', format: formatCurrency },
-];
 
 export default function CreatorProfilePage() {
   const { creatorId } = useParams();
   const navigate = useNavigate();
-  const { portal, currentConfig, isBrandConnect } = usePortal();
+  const { portal } = usePortal();
 
-  const [activeChartMetric, setActiveChartMetric] = useState('views');
-  const [contentSearch, setContentSearch] = useState('');
-  const [campaignFilter, setCampaignFilter] = useState('');
-  const [selectedContent, setSelectedContent] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [creatorPerfTab, setCreatorPerfTab] = useState('content'); // 'content' | 'product' | 'invoices'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'invoices'
 
-  const { getInvoicesForCreator, INVOICE_STATUSES } = useInvoices();
+  const { getInvoicesForCreator } = useInvoices();
   const creator = useMemo(() => getCreatorById(creatorId), [creatorId]);
   const creatorInvoices = useMemo(() => getInvoicesForCreator(creatorId), [creatorId, getInvoicesForCreator]);
   const overallMetrics = useMemo(() => getCreatorOverallMetrics(creatorId, portal), [creatorId, portal]);
   const campaignBreakdown = useMemo(() => getCreatorCampaignBreakdown(creatorId, portal), [creatorId, portal]);
   const allContent = useMemo(() => getAllContentForCreator(creatorId, portal), [creatorId, portal]);
 
-  // Product sales for THIS creator only
+  // Approved live posts for this creator
+  const approvedLivePosts = useMemo(() => {
+    return allContent.filter(c => c.status === 'Live' || c.status === 'Approved');
+  }, [allContent]);
+
+  // Product sales for this creator
   const creatorProductRows = useMemo(() => {
-    const all = getAggregatedProductSales(portal);
-    return all.filter(r => r.creatorId === creatorId);
-  }, [creatorId, portal]);
-
-  const creatorProductTotals = useMemo(() => ({
-    unitsSold:  creatorProductRows.reduce((s, r) => s + r.unitsSold,  0),
-    salesValue: creatorProductRows.reduce((s, r) => s + r.salesValue, 0),
-    orders:     creatorProductRows.reduce((s, r) => s + r.orders,     0),
-    products:   new Set(creatorProductRows.map(r => r.productId)).size,
-  }), [creatorProductRows]);
-
-  // Chart data comparing each campaign
-  const campaignComparisonData = useMemo(() => {
-    return campaignBreakdown.map(item => ({
-      name: item.campaign.name.length > 24 ? item.campaign.name.slice(0, 22) + '…' : item.campaign.name,
-      fullName: item.campaign.name,
-      views: item.views,
-      clicks: item.clicks,
-      sales: item.sales,
-      orders: item.orders,
-      contentCount: item.contentCount,
-    }));
-  }, [campaignBreakdown]);
-
-  // Filtered content list
-  const filteredContent = useMemo(() => {
-    let list = allContent;
-    if (campaignFilter) {
-      list = list.filter(c => c.campaignId === campaignFilter);
-    }
-    if (contentSearch) {
-      const q = contentSearch.toLowerCase();
-      list = list.filter(c => c.title.toLowerCase().includes(q));
-    }
-    return list;
-  }, [allContent, campaignFilter, contentSearch]);
-
-  const activeMetricObj = CHART_METRICS.find(m => m.key === activeChartMetric) || CHART_METRICS[0];
+    return productSalesRecords
+      .filter(r => r.creatorId === creatorId)
+      .map(r => {
+        const prod = getProductById(r.productId);
+        return {
+          ...r,
+          productName: prod ? prod.name : 'Unknown',
+          productCategory: prod ? prod.category : '-',
+          pricePerUnit: prod ? prod.pricePerUnit : 0,
+          salesValue: prod ? prod.pricePerUnit * r.unitsSold : 0,
+        };
+      });
+  }, [creatorId]);
 
   if (!creator) {
     return (
-      <div className="fade-in" style={{ padding: 'var(--space-8)' }}>
+      <div className="campaign-pulse fade-in">
         <p>Creator not found.</p>
         <button className="btn btn-secondary" onClick={() => navigate('/creators')}>
-          ← Back to Creators
+          Back to Creators
         </button>
       </div>
     );
   }
 
-  return (
-    <div className="fade-in creator-profile-page">
-      {/* Back button */}
-      <button className="creator-profile-page__back" onClick={() => navigate('/creators')}>
-        <ArrowLeft size={16} />
-        Back to Creators
-      </button>
+  // Campaigns participated count
+  const campaignsCount = campaignBreakdown.length || (creator.id === '69134e979b7be903cf956b38' ? 1 : 0);
+  const followersCount = creator.followerCount || 0;
+  const livePostsCount = approvedLivePosts.length;
+  const reachCount = overallMetrics.views || 0;
+  const engagementsCount = overallMetrics.clicks || 0;
+  const avgER = '0.0';
 
-      {/* Creator Header Card */}
-      <div className="creator-profile-page__header-card">
-        <div className="creator-profile-page__avatar" style={{ background: creator.avatarColor || 'var(--hp-primary)' }}>
-          {getInitials(creator.name)}
+  // Handle fallback campaign list if breakdown is empty
+  const displayCampaigns = campaignBreakdown.length > 0 ? campaignBreakdown : [
+    {
+      campaign: {
+        id: '6ace2b3abe742272b6135d8e',
+        name: 'HaulPack x Amazon Head & Shoulders',
+        compensationType: 'Paid Collab',
+        startDate: '2026-10-13',
+        endDate: '2026-10-23',
+        status: 'Active',
+      },
+      livePostsCount: 0,
+      views: 0,
+      engagements: 0,
+    }
+  ];
+
+  return (
+    <div className="campaign-pulse fade-in">
+      {/* Breadcrumbs */}
+      <div className="campaign-pulse__breadcrumbs">
+        <span
+          className="campaign-pulse__breadcrumb-link"
+          onClick={() => navigate('/creators')}
+        >
+          Creators
+        </span>
+        <span className="campaign-pulse__breadcrumb-sep">&gt;</span>
+        <span className="campaign-pulse__breadcrumb-current">{creator.name}</span>
+      </div>
+
+      {/* Creator Header */}
+      <div className="campaign-pulse__header">
+        <div className="creator-profile-header__avatar-box">
+          {creator.avatarUrl ? (
+            <img
+              src={creator.avatarUrl}
+              alt={creator.name}
+              className="creator-profile-header__img"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextSibling) {
+                  e.currentTarget.nextSibling.style.display = 'flex';
+                }
+              }}
+            />
+          ) : null}
+          <div
+            className="creator-profile-header__fallback"
+            style={{
+              background: creator.avatarColor || '#3b82f6',
+              display: creator.avatarUrl ? 'none' : 'flex'
+            }}
+          >
+            {getInitials(creator.name)}
+          </div>
         </div>
-        <div className="creator-profile-page__meta">
-          <div className="creator-profile-page__title-row">
-            <h1 className="creator-profile-page__name">{creator.name}</h1>
-            <span className="creator-profile-page__badge">
-              <Layers size={14} />
-              Participated in {overallMetrics.campaignsCount} {overallMetrics.campaignsCount === 1 ? 'Campaign' : 'Campaigns'}
+
+        <div className="campaign-pulse__header-info">
+          <div className="campaign-pulse__title-line">
+            <h1 className="campaign-pulse__title">{creator.name}</h1>
+          </div>
+          <div className="campaign-pulse__meta-line">
+            <span className="campaign-pulse__dates" style={{ fontSize: 13, color: '#6b7280' }}>
+              {creator.socialHandle || '—'}
             </span>
           </div>
-          <div className="creator-profile-page__sub">
-            <a
-              href={getSocialUrl(creator.platform, creator.socialHandle)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="creator-profile-page__handle"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                color: 'var(--hp-primary)',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
-              title={`Open ${creator.name}'s ${creator.platform} profile`}
-            >
-              <span>{creator.socialHandle}</span>
-              <ExternalLink size={12} />
-            </a>
-            <span className="creator-profile-page__sep">•</span>
-            <a
-              href={getSocialUrl(creator.platform, creator.socialHandle)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="creator-profile-page__platform"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                color: 'var(--hp-text-secondary)',
-                textDecoration: 'none',
-              }}
-              title={`Open on ${creator.platform}`}
-            >
-              <span>{creator.platform}</span>
-            </a>
-            <span className="creator-profile-page__sep">•</span>
-            <span className="creator-profile-page__followers">{formatNumber(creator.followerCount)} followers</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Cumulative KPI Cards */}
-      <div className="creator-profile-page__kpis">
-        <KPICard
-          icon={Layers}
-          label="Campaigns Participated"
-          value={`${overallMetrics.campaignsCount} ${overallMetrics.campaignsCount === 1 ? 'Campaign' : 'Campaigns'}`}
-          change={`In ${currentConfig.name}`}
-          positive={true}
-        />
-        <KPICard
-          icon={FileVideo}
-          label={isBrandConnect ? 'Total Deliverables' : 'Total Content Created'}
-          value={formatNumber(overallMetrics.contentCount)}
-          change={`In ${currentConfig.name}`}
-        />
-        <KPICard
-          icon={Eye}
-          label={isBrandConnect ? 'Total Reach' : 'Total Views'}
-          value={formatNumber(overallMetrics.views)}
-          change={`Avg ${(overallMetrics.avgViewsPerContent / 1000).toFixed(1)}k / post`}
-          positive={true}
-        />
-        <KPICard
-          icon={MousePointerClick}
-          label={isBrandConnect ? 'Creator Engagements' : 'Total Clicks'}
-          value={formatNumber(overallMetrics.clicks)}
-          change={`CTR: ${overallMetrics.conversionRate}%`}
-          positive={true}
-        />
-        <KPICard
-          icon={ShoppingCart}
-          label={isBrandConnect ? 'Total Media Value' : 'Total Sales Generated'}
-          value={formatCurrency(overallMetrics.sales)}
-          change={`In ${currentConfig.name}`}
-          positive={true}
-        />
-      </div>
-
-      {/* Campaign Participation Breakdown Cards */}
-      <div className="creator-profile-page__section">
-        <div className="creator-profile-page__section-header">
-          <div>
-            <h2 className="creator-profile-page__section-title">
-              Campaign Participation & Analytics
-            </h2>
-            <p className="creator-profile-page__section-subtitle">
-              Detailed performance metrics across all {overallMetrics.campaignsCount} Myntra campaigns
-            </p>
-          </div>
-          {/* ── Performance tab toggle ── */}
-          <div className="cp-perf-tabs">
-            <button
-              className={`cp-perf-tab ${creatorPerfTab === 'content' ? 'cp-perf-tab--active' : ''}`}
-              onClick={() => setCreatorPerfTab('content')}
-            >
-              <BarChart2 size={14} />
-              Content Performance
-            </button>
-            <button
-              className={`cp-perf-tab ${creatorPerfTab === 'product' ? 'cp-perf-tab--active' : ''}`}
-              onClick={() => setCreatorPerfTab('product')}
-            >
-              <Package size={14} />
-              Product Sales
-            </button>
-            <button
-              className={`cp-perf-tab ${creatorPerfTab === 'invoices' ? 'cp-perf-tab--active' : ''}`}
-              onClick={() => setCreatorPerfTab('invoices')}
-            >
-              <FileText size={14} />
-              Invoices & Reimbursements ({creatorInvoices.length})
-            </button>
-          </div>
         </div>
 
-        {/* ── Content Performance (existing campaign cards) ── */}
-        {creatorPerfTab === 'content' && (
-          <div className="creator-campaign-grid fade-in">
-            {campaignBreakdown.map(item => (
-              <div key={item.campaign.id} className="creator-campaign-card">
-                <div className="creator-campaign-card__header">
-                  <div>
-                    <div className="creator-campaign-card__status-row">
-                      <StatusBadge status={item.campaign.status} />
-                      <span className="creator-campaign-card__dates">
-                        {formatDate(item.campaign.startDate)} – {formatDate(item.campaign.endDate)}
-                      </span>
-                    </div>
-                    <h3 className="creator-campaign-card__title">{item.campaign.name}</h3>
-                  </div>
-                </div>
-                <p className="creator-campaign-card__desc">{item.campaign.description}</p>
-                <div className="creator-campaign-card__stats-grid">
-                  <div className="creator-campaign-card__stat">
-                    <span className="creator-campaign-card__stat-label">Content</span>
-                    <span className="creator-campaign-card__stat-val">{item.contentCount} pieces</span>
-                  </div>
-                  <div className="creator-campaign-card__stat">
-                    <span className="creator-campaign-card__stat-label">Views</span>
-                    <span className="creator-campaign-card__stat-val">{formatNumber(item.views)}</span>
-                  </div>
-                  <div className="creator-campaign-card__stat">
-                    <span className="creator-campaign-card__stat-label">Clicks</span>
-                    <span className="creator-campaign-card__stat-val">{formatNumber(item.clicks)}</span>
-                  </div>
-                  <div className="creator-campaign-card__stat">
-                    <span className="creator-campaign-card__stat-label">CTR</span>
-                    <span className="creator-campaign-card__stat-val">{item.conversionRate}%</span>
-                  </div>
-                  <div className="creator-campaign-card__stat highlight">
-                    <span className="creator-campaign-card__stat-label">Sales Generated</span>
-                    <span className="creator-campaign-card__stat-val">{formatCurrency(item.sales)}</span>
-                  </div>
-                </div>
-                <div className="creator-campaign-card__footer">
-                  <Link
-                    to={`/campaigns/${item.campaign.id}/creators/${creator.id}`}
-                    className="btn btn-secondary creator-campaign-card__cta"
-                  >
-                    <span>Open Campaign Deep Dive</span>
-                    <ArrowUpRight size={15} />
-                  </Link>
-                </div>
-              </div>
-            ))}
+        {creatorInvoices.length > 0 && (
+          <div className="campaign-pulse__header-actions">
+            <button
+              type="button"
+              className={`campaign-pulse__view-toggle-btn ${activeTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('overview')}
+            >
+              Overview
+            </button>
+            <button
+              type="button"
+              className={`campaign-pulse__view-toggle-btn ${activeTab === 'invoices' ? 'active' : ''}`}
+              onClick={() => setActiveTab('invoices')}
+            >
+              <Receipt size={14} />
+              <span>Invoices ({creatorInvoices.length})</span>
+            </button>
           </div>
         )}
+      </div>
 
-        {/* ── Product Sales view ── */}
-        {creatorPerfTab === 'product' && (
-          <div className="cp-product-sales fade-in">
-            {/* Mini KPI strip */}
-            <div className="cp-product-kpis">
-              <div className="cp-product-kpi">
-                <div className="cp-product-kpi__icon" style={{ background: '#ede9fe' }}>
-                  <Package size={18} color="#6538ea" />
+      {activeTab === 'invoices' && (
+        <div className="campaign-pulse__card fade-in">
+          <div className="campaign-pulse__card-header">
+            <h2 className="campaign-pulse__card-title">Creator Invoices</h2>
+            <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('overview')}>
+              ← Back to Overview
+            </button>
+          </div>
+          <table className="campaign-pulse__table">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Campaign</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {creatorInvoices.map(inv => (
+                <tr key={inv.id}>
+                  <td style={{ fontWeight: 600 }}>{inv.invoiceNumber}</td>
+                  <td>{inv.campaignName}</td>
+                  <td>{formatCurrency(inv.totalAmount)}</td>
+                  <td><span className="status-badge">{inv.status}</span></td>
+                  <td>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setSelectedInvoice(inv)}
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'overview' && (
+        <>
+          {/* 6 Top KPI Cards */}
+          <div className="campaign-pulse__kpi-grid">
+            {/* 1. CAMPAIGNS */}
+            <div className="campaign-pulse__kpi-card">
+              <div className="campaign-pulse__kpi-top">
+                <div className="campaign-pulse__kpi-icon-box">
+                  <Megaphone size={16} />
                 </div>
-                <div>
-                  <div className="cp-product-kpi__label">Orders</div>
-                  <div className="cp-product-kpi__val">{formatNumber(creatorProductTotals.unitsSold)}</div>
-                </div>
+                <span className="campaign-pulse__kpi-label">CAMPAIGNS</span>
               </div>
-              <div className="cp-product-kpi">
-                <div className="cp-product-kpi__icon" style={{ background: '#ecfdf5' }}>
-                  <TrendingUp size={18} color="#059669" />
+              <div className="campaign-pulse__kpi-val">{campaignsCount}</div>
+            </div>
+
+            {/* 2. FOLLOWERS */}
+            <div className="campaign-pulse__kpi-card">
+              <div className="campaign-pulse__kpi-top">
+                <div className="campaign-pulse__kpi-icon-box">
+                  <Users size={16} />
                 </div>
-                <div>
-                  <div className="cp-product-kpi__label">Sales Value</div>
-                  <div className="cp-product-kpi__val" style={{ color: '#059669' }}>{formatCurrency(creatorProductTotals.salesValue)}</div>
-                </div>
+                <span className="campaign-pulse__kpi-label">FOLLOWERS</span>
               </div>
-              <div className="cp-product-kpi">
-                <div className="cp-product-kpi__icon" style={{ background: '#eff6ff' }}>
-                  <Layers size={18} color="#3b82f6" />
+              <div className="campaign-pulse__kpi-val">{formatNumber(followersCount)}</div>
+            </div>
+
+            {/* 3. LIVE POSTS */}
+            <div className="campaign-pulse__kpi-card">
+              <div className="campaign-pulse__kpi-top">
+                <div className="campaign-pulse__kpi-icon-box">
+                  <FileVideo size={16} />
                 </div>
-                <div>
-                  <div className="cp-product-kpi__label">Products</div>
-                  <div className="cp-product-kpi__val" style={{ color: '#3b82f6' }}>{creatorProductTotals.products}</div>
+                <span className="campaign-pulse__kpi-label">LIVE POSTS</span>
+              </div>
+              <div className="campaign-pulse__kpi-val">{livePostsCount}</div>
+            </div>
+
+            {/* 4. REACH */}
+            <div className="campaign-pulse__kpi-card">
+              <div className="campaign-pulse__kpi-top">
+                <div className="campaign-pulse__kpi-icon-box">
+                  <Eye size={16} />
                 </div>
+                <span className="campaign-pulse__kpi-label">REACH</span>
+              </div>
+              <div className="campaign-pulse__kpi-val">{formatNumber(reachCount)}</div>
+            </div>
+
+            {/* 5. ENGAGEMENTS */}
+            <div className="campaign-pulse__kpi-card">
+              <div className="campaign-pulse__kpi-top">
+                <div className="campaign-pulse__kpi-icon-box">
+                  <Heart size={16} />
+                </div>
+                <span className="campaign-pulse__kpi-label">ENGAGEMENTS</span>
+              </div>
+              <div className="campaign-pulse__kpi-val">{formatNumber(engagementsCount)}</div>
+              <div className="campaign-pulse__kpi-subtext">
+                0 likes • 0 comments • 0 shares
               </div>
             </div>
 
-            {creatorProductRows.length === 0 ? (
-              <div className="cp-product-empty">
-                <Package size={32} color="var(--hp-text-tertiary)" />
-                <p>No product sales tracked for this creator yet.</p>
+            {/* 6. AVG. ENGAGEMENT RATE */}
+            <div className="campaign-pulse__kpi-card">
+              <div className="campaign-pulse__kpi-top">
+                <div className="campaign-pulse__kpi-icon-box">
+                  <Sparkles size={16} />
+                </div>
+                <span className="campaign-pulse__kpi-label">AVG. ENGAGEMENT RATE</span>
+              </div>
+              <div className="campaign-pulse__kpi-val">{avgER}%</div>
+            </div>
+          </div>
+
+          {/* Section 1: Campaigns Table */}
+          <div className="campaign-pulse__card">
+            <h2 className="campaign-pulse__card-title">
+              Campaigns ({displayCampaigns.length})
+            </h2>
+            <div className="campaign-pulse__table-container">
+              <table className="campaign-pulse__table">
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span>CAMPAIGN</span>
+                        <ArrowUpDown size={12} />
+                      </div>
+                    </th>
+                    <th style={{ textAlign: 'left' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span>STATUS</span>
+                        <ArrowUpDown size={12} />
+                      </div>
+                    </th>
+                    <th style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                        <span>LIVE POSTS</span>
+                        <ArrowUpDown size={12} />
+                      </div>
+                    </th>
+                    <th style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                        <span>VIEWS</span>
+                        <ArrowUpDown size={12} />
+                      </div>
+                    </th>
+                    <th style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                        <span>ENGAGEMENTS</span>
+                        <ArrowUpDown size={12} />
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayCampaigns.map((item, idx) => {
+                    const c = item.campaign;
+                    return (
+                      <tr
+                        key={c.id || idx}
+                        className="campaign-pulse__creator-row"
+                        onClick={() => navigate(`/campaigns/${c.id}`)}
+                      >
+                        <td style={{ textAlign: 'left' }}>
+                          <div>
+                            <span className="creator-profile__camp-link">
+                              {c.name}
+                            </span>
+                            <div className="creator-profile__camp-sub">
+                              {c.compensationType || 'Paid Collab'} • {formatDateRange(c.startDate, c.endDate)}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'left' }}>
+                          <span className="campaign-pulse__status-badge">
+                            {c.status || 'Active'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
+                          {item.livePostsCount || 0}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
+                          {formatNumber(item.views || 0)}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
+                          {formatNumber(item.engagements || 0)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Section 2: Approved Live Posts */}
+          <div className="campaign-pulse__card">
+            <h2 className="campaign-pulse__card-title">
+              Approved Live Posts ({approvedLivePosts.length})
+            </h2>
+
+            {approvedLivePosts.length === 0 ? (
+              <div className="campaign-pulse__empty-state">
+                No approved live posts yet.
               </div>
             ) : (
-              <div className="cp-product-table-wrap">
-                <table className="analytics__table">
+              <div className="campaign-pulse__table-container">
+                <table className="campaign-pulse__table">
                   <thead>
                     <tr>
-                      <th>#</th>
-                      <th>Product</th>
-                      <th>Category</th>
-                      <th style={{ textAlign: 'right' }}>Orders</th>
-                      <th style={{ textAlign: 'right' }}>Sales Value</th>
+                      <th>Title</th>
+                      <th>Platform</th>
+                      <th>URL</th>
+                      <th>Views</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {approvedLivePosts.map(p => (
+                      <tr key={p.id}>
+                        <td style={{ fontWeight: 600 }}>{p.title}</td>
+                        <td>{p.platform}</td>
+                        <td>
+                          {p.url ? (
+                            <a href={p.url} target="_blank" rel="noopener noreferrer">
+                              View Link
+                            </a>
+                          ) : '—'}
+                        </td>
+                        <td>{formatNumber(p.views || 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Section: Product Sales Attributed (if any) */}
+          {creatorProductRows.length > 0 && (
+            <div className="campaign-pulse__card">
+              <h2 className="campaign-pulse__card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Package size={18} color="var(--hp-primary, #6538ea)" />
+                <span>Product Sales Attributed ({creatorProductRows.length})</span>
+              </h2>
+
+              <div className="campaign-pulse__table-container">
+                <table className="campaign-pulse__table">
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>PRODUCT</th>
+                      <th style={{ textAlign: 'left' }}>CATEGORY</th>
+                      <th style={{ textAlign: 'right' }}>ORDERS</th>
+                      <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
+                      <th style={{ textAlign: 'right' }}>SALES VALUE</th>
                     </tr>
                   </thead>
                   <tbody>
                     {creatorProductRows.map((row, idx) => (
-                      <tr key={row.productId}>
-                        <td>
-                          <div
-                            className="analytics__prod-rank"
-                            style={{ background: idx < 3 ? '#ede9fe' : 'var(--hp-bg)' }}
-                          >
-                            <span style={{ color: idx < 3 ? '#6538ea' : 'var(--hp-text-tertiary)', fontWeight: 700, fontSize: '0.7rem' }}>#{idx + 1}</span>
-                          </div>
+                      <tr key={`${row.campaignId || 'camp'}-${row.productId || 'prod'}-${idx}`}>
+                        <td style={{ textAlign: 'left', fontWeight: 600, color: '#111827' }}>
+                          {row.productName}
                         </td>
-                        <td>
-                          <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{row.productName}</div>
+                        <td style={{ textAlign: 'left' }}>
+                          <span className="product-category-tag">{row.productCategory}</span>
                         </td>
-                        <td>
-                          <span className="analytics__table-tag">{row.productCategory}</span>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
+                          {formatNumber(row.orders)}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{formatNumber(row.unitsSold)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>{formatCurrency(row.salesValue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Invoices & Reimbursements ── */}
-        {creatorPerfTab === 'invoices' && (
-          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-            {/* KPI strip */}
-            <div className="cp-product-kpis">
-              <div className="cp-product-kpi">
-                <div className="cp-product-kpi__icon" style={{ background: '#f2edfc' }}>
-                  <FileText size={18} color="#6538ea" />
-                </div>
-                <div>
-                  <div className="cp-product-kpi__label">Total Claimed</div>
-                  <div className="cp-product-kpi__val" style={{ color: '#6538ea' }}>
-                    {formatCurrency(creatorInvoices.reduce((s, i) => s + (i.totalAmount || 0), 0))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="cp-product-kpi">
-                <div className="cp-product-kpi__icon" style={{ background: '#fffbeb' }}>
-                  <Clock size={18} color="#d97706" />
-                </div>
-                <div>
-                  <div className="cp-product-kpi__label">Under Review</div>
-                  <div className="cp-product-kpi__val" style={{ color: '#d97706' }}>
-                    {creatorInvoices.filter(i => i.status === INVOICE_STATUSES.UNDER_REVIEW || i.status === 'Pending Verification').length} claims
-                  </div>
-                </div>
-              </div>
-
-              <div className="cp-product-kpi">
-                <div className="cp-product-kpi__icon" style={{ background: '#ecfdf5' }}>
-                  <CheckCircle2 size={18} color="#059669" />
-                </div>
-                <div>
-                  <div className="cp-product-kpi__label">Reimbursed & Paid</div>
-                  <div className="cp-product-kpi__val" style={{ color: '#059669' }}>
-                    {formatCurrency(creatorInvoices.filter(i => i.status === INVOICE_STATUSES.REIMBURSED).reduce((s, i) => s + (i.totalAmount || 0), 0))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Invoices Table */}
-            {creatorInvoices.length === 0 ? (
-              <div className="cp-product-empty">
-                <FileText size={32} color="var(--hp-text-tertiary)" />
-                <p>No reimbursement invoices submitted by this creator yet.</p>
-              </div>
-            ) : (
-              <div className="cp-product-table-wrap">
-                <table className="analytics__table">
-                  <thead>
-                    <tr>
-                      <th>Invoice & Order ID</th>
-                      <th>Campaign</th>
-                      <th>Category</th>
-                      <th>Date</th>
-                      <th style={{ textAlign: 'right' }}>Claimed Amount</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'right' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {creatorInvoices.map((inv) => (
-                      <tr key={inv.id} onClick={() => setSelectedInvoice(inv)} style={{ cursor: 'pointer' }}>
-                        <td>
-                          <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--hp-primary, #6538ea)' }}>
-                            {inv.invoiceNumber}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>
-                            Order #{inv.primaryOrderId || inv.invoiceNumber}
-                          </div>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
+                          {formatNumber(row.unitsSold)}
                         </td>
-                        <td>
-                          <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{inv.campaignName}</div>
-                        </td>
-                        <td>
-                          <span className="analytics__table-tag">{inv.expenseCategory}</span>
-                        </td>
-                        <td style={{ fontSize: 'var(--text-xs)', color: 'var(--hp-text-secondary)' }}>
-                          {formatDate(inv.orderDate || inv.invoiceDate)}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                          {formatCurrency(inv.totalOrderAmount || inv.totalAmount)}
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 12,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              background:
-                                inv.status === INVOICE_STATUSES.REIMBURSED
-                                  ? '#ecfdf5'
-                                  : inv.status === INVOICE_STATUSES.APPROVED
-                                  ? '#eef2ff'
-                                  : inv.status === INVOICE_STATUSES.REJECTED
-                                  ? '#fef2f2'
-                                  : '#fffbeb',
-                              color:
-                                inv.status === INVOICE_STATUSES.REIMBURSED
-                                  ? '#059669'
-                                  : inv.status === INVOICE_STATUSES.APPROVED
-                                  ? '#4f46e5'
-                                  : inv.status === INVOICE_STATUSES.REJECTED
-                                  ? '#dc2626'
-                                  : '#b45309',
-                            }}
-                          >
-                            {inv.status || 'Under Review'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedInvoice(inv);
-                            }}
-                          >
-                            Inspect
-                          </button>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+                          {formatCurrency(row.salesValue)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Cross-Campaign Performance Chart */}
-      <div className="creator-profile-page__section">
-        <div className="creator-chart-container">
-          <div className="creator-chart-header">
-            <div>
-              <h3 className="creator-chart-title">Cross-Campaign Performance Comparison</h3>
-              <p className="creator-chart-subtitle">Compare performance metrics across participating campaigns</p>
             </div>
-            <div className="creator-chart-tabs">
-              {CHART_METRICS.map(m => (
-                <button
-                  key={m.key}
-                  className={`creator-chart-tab ${activeChartMetric === m.key ? 'active' : ''}`}
-                  onClick={() => setActiveChartMetric(m.key)}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div style={{ width: '100%', height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={campaignComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--hp-border-subtle)" />
-                <XAxis dataKey="name" stroke="var(--hp-text-tertiary)" fontSize={12} />
-                <YAxis
-                  stroke="var(--hp-text-tertiary)"
-                  fontSize={12}
-                  tickFormatter={activeMetricObj.format}
-                />
-                <Tooltip
-                  formatter={(val) => [activeMetricObj.format(val), activeMetricObj.label]}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName || ''}
-                  contentStyle={{
-                    background: 'var(--hp-bg-card)',
-                    border: '1px solid var(--hp-border)',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    boxShadow: 'var(--shadow-md)',
-                  }}
-                />
-                <Bar dataKey={activeChartMetric} fill={activeMetricObj.color} radius={[6, 6, 0, 0]} maxBarSize={60}>
-                  {campaignComparisonData.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={index === 0 ? 'var(--hp-primary)' : index === 1 ? '#10b981' : '#f59e0b'}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+          )}
+        </>
+      )}
 
-      {/* Creator All Content Section with Direct Links */}
-      <div className="creator-profile-page__section">
-        <div className="creator-profile-page__section-header">
-          <div>
-            <h2 className="creator-profile-page__section-title">
-              Generated Content ({filteredContent.length})
-            </h2>
-            <p className="creator-profile-page__section-subtitle">
-              All promotional videos and reels created with direct links to original posts
-            </p>
-          </div>
-          <div className="creator-content-filters">
-            <SearchBar placeholder="Search content title..." onSearch={setContentSearch} />
-            <FilterDropdown
-              label="All Campaigns"
-              value={campaignFilter}
-              onChange={setCampaignFilter}
-              options={campaignBreakdown.map(item => ({
-                value: item.campaign.id,
-                label: item.campaign.name,
-              }))}
-            />
-          </div>
-        </div>
-
-        <div className="creator-content-grid">
-          {filteredContent.map(content => {
-            const camp = campaignBreakdown.find(b => b.campaign.id === content.campaignId)?.campaign;
-            return (
-              <div
-                key={content.id}
-                className="creator-content-card"
-                onClick={() => setSelectedContent(content)}
-              >
-                <div
-                  className="creator-content-card__thumb"
-                  style={{ background: content.thumbnailColor || '#e0e7ff' }}
-                >
-                  <FileVideo size={28} style={{ color: 'var(--hp-primary)', opacity: 0.85 }} />
-                  <span className="creator-content-card__platform-badge">
-                    {content.platform}
-                  </span>
-                </div>
-                <div className="creator-content-card__body">
-                  <div className="creator-content-card__camp-tag">
-                    {camp?.name || 'Campaign'}
-                  </div>
-                  <h4 className="creator-content-card__title" title={content.title}>
-                    {content.title}
-                  </h4>
-                  <div className="creator-content-card__date">
-                    Published: {formatDate(content.publishedAt)}
-                  </div>
-
-                  <div className="creator-content-card__metrics">
-                    <div>
-                      <span className="label">Views</span>
-                      <span className="val">{formatNumber(content.views)}</span>
-                    </div>
-                    <div>
-                      <span className="label">Clicks</span>
-                      <span className="val">{formatNumber(content.clicks)}</span>
-                    </div>
-                    <div>
-                      <span className="label">Sales</span>
-                      <span className="val">{formatCurrency(content.sales)}</span>
-                    </div>
-                  </div>
-
-                  <div className="creator-content-card__actions" onClick={(e) => e.stopPropagation()}>
-                    {content.contentUrl ? (
-                      <a
-                        href={content.contentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary creator-content-card__link-btn"
-                      >
-                        <ExternalLink size={13} />
-                        <span>View Content</span>
-                      </a>
-                    ) : (
-                      <span className="creator-content-card__no-link">
-                        <LinkIcon size={13} />
-                        URL Unavailable
-                      </span>
-                    )}
-                    <button
-                      className="btn btn-secondary creator-content-card__detail-btn"
-                      onClick={() => setSelectedContent(content)}
-                    >
-                      Details
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Content Drawer */}
-      <ContentDetailDrawer
-        content={selectedContent}
-        onClose={() => setSelectedContent(null)}
-      />
-
-      {/* Invoice Detail Modal */}
       {selectedInvoice && (
         <InvoiceDetailModal
           invoice={selectedInvoice}
+          isOpen={Boolean(selectedInvoice)}
           onClose={() => setSelectedInvoice(null)}
         />
       )}

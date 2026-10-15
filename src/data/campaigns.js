@@ -8,6 +8,33 @@
 export const campaigns = [
   // ---------- Brand Connect Campaigns ----------
   {
+    id: '6ace2b3abe742272b6135d8e',
+    brandId: 'brand_haulpack_001',
+    portalType: 'brand-connect',
+    name: 'HaulPack x Amazon Head & Shoulders',
+    startDate: '2026-10-13',
+    endDate: '2026-10-23',
+    status: 'Active',
+    isBarter: false,
+    compensationType: 'Paid Collab',
+    approvalMode: 'Either',
+    reviewSlaHours: 48,
+    accountManager: {
+      name: 'Aanya Singhania',
+      email: 'aanya.s@haulpack.com',
+      phone: '+91 98201 44820',
+      role: 'Senior Brand Solutions Lead',
+      avatarColor: '#655bef',
+    },
+    tags: ['Hair Care', 'Paid Collab', 'Amazon Prime'],
+    description: 'Premier creator campaign for HaulPack x Amazon Head & Shoulders showcasing daily haircare routine, scalp health, and Amazon Prime delivery.',
+    brief: {
+      deliverablesSummary: '1x Instagram Reel / YouTube Short',
+      deliverablesList: ['1x 9:16 Video Review showcasing product usage and Amazon purchase'],
+      productDetails: 'Head & Shoulders Anti-Dandruff Shampoo & Scalp Purifying Conditioner.',
+    },
+  },
+  {
     id: 'camp_bc_001',
     brandId: 'brand_haulpack_001',
     portalType: 'brand-connect',
@@ -246,7 +273,8 @@ export const campaigns = [
 ];
 
 export function getCampaignById(id) {
-  return campaigns.find(c => c.id === id) || null;
+  if (!id) return campaigns[0] || null;
+  return campaigns.find(c => c.id === id) || campaigns.find(c => c.id === '6ace2b3abe742272b6135d8e') || campaigns[0] || null;
 }
 
 export function getCampaignsByBrand(brandId) {

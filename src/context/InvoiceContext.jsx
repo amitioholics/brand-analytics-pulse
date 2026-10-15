@@ -5,22 +5,45 @@ const InvoiceContext = createContext(null);
 
 export function InvoiceProvider({ children }) {
   const [invoices, setInvoices] = useState(() => {
-    const saved = localStorage.getItem('hp_creator_invoices_v2');
+    const saved = localStorage.getItem('hp_creator_invoices_v5');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= INITIAL_INVOICES.length) {
-          return parsed;
+          return parsed.map(inv => {
+            const isUnderReview = inv.status === 'Under Review' || inv.status === INVOICE_STATUSES.UNDER_REVIEW;
+            return {
+              ...inv,
+              status: inv.status === 'Reimbursed' ? INVOICE_STATUSES.APPROVED : inv.status,
+              orders: (inv.orders || []).map((ord, idx) => ({
+                ...ord,
+                productName: ord.productName?.startsWith('Product') ? ord.productName : `Product ${ord.orderIndex || idx + 1}`,
+                status: isUnderReview
+                  ? INVOICE_STATUSES.UNDER_REVIEW
+                  : ord.status === 'Reimbursed'
+                  ? INVOICE_STATUSES.APPROVED
+                  : ord.status,
+                rejectionReason: isUnderReview ? null : ord.rejectionReason,
+              })),
+            };
+          });
         }
       } catch {
         return INITIAL_INVOICES;
       }
     }
+    try {
+      localStorage.removeItem('hp_creator_invoices_v4');
+      localStorage.removeItem('hp_creator_invoices_v3');
+      localStorage.removeItem('hp_creator_invoices_v2');
+    } catch {
+      // ignore
+    }
     return INITIAL_INVOICES;
   });
 
   useEffect(() => {
-    localStorage.setItem('hp_creator_invoices_v2', JSON.stringify(invoices));
+    localStorage.setItem('hp_creator_invoices_v5', JSON.stringify(invoices));
   }, [invoices]);
 
   // Action: Verify / Approve Invoice
@@ -31,6 +54,8 @@ export function InvoiceProvider({ children }) {
           const updatedOrders = (inv.orders || []).map(ord => ({
             ...ord,
             status: INVOICE_STATUSES.APPROVED,
+            rejectionReason: null,
+            remarks: null,
           }));
           return {
             ...inv,
@@ -56,6 +81,7 @@ export function InvoiceProvider({ children }) {
             ...ord,
             status: INVOICE_STATUSES.REJECTED,
             rejectionReason: reason,
+            remarks: notes || ord.remarks || '',
           }));
           return {
             ...inv,
@@ -73,22 +99,24 @@ export function InvoiceProvider({ children }) {
   };
 
   // Action: Update individual order within a submission
-  const updateOrderStatus = (invoiceId, orderIndex, newStatus, reason = null) => {
+  const updateOrderStatus = (invoiceId, orderIndexOrId, newStatus, reason = null, remarks = '') => {
     setInvoices(prev =>
       prev.map(inv => {
         if (inv.id === invoiceId) {
-          const updatedOrders = (inv.orders || []).map(ord => {
-            if (ord.orderIndex === orderIndex) {
+          const updatedOrders = (inv.orders || []).map((ord, idx) => {
+            const matches = ord.id === orderIndexOrId || ord.orderIndex === orderIndexOrId || (idx + 1) === orderIndexOrId;
+            if (matches) {
               return {
                 ...ord,
                 status: newStatus,
-                rejectionReason: reason || ord.rejectionReason,
+                rejectionReason: newStatus === INVOICE_STATUSES.APPROVED ? null : (reason || ord.rejectionReason),
+                remarks: newStatus === INVOICE_STATUSES.APPROVED ? null : (remarks !== undefined && remarks !== '' ? remarks : ord.remarks),
               };
             }
             return ord;
           });
-          const allApproved = updatedOrders.every(o => o.status === INVOICE_STATUSES.APPROVED);
-          const allRejected = updatedOrders.every(o => o.status === INVOICE_STATUSES.REJECTED);
+          const allApproved = updatedOrders.length > 0 && updatedOrders.every(o => o.status === INVOICE_STATUSES.APPROVED);
+          const allRejected = updatedOrders.length > 0 && updatedOrders.every(o => o.status === INVOICE_STATUSES.REJECTED);
           const overallStatus = allApproved
             ? INVOICE_STATUSES.APPROVED
             : allRejected
@@ -99,6 +127,8 @@ export function InvoiceProvider({ children }) {
             ...inv,
             orders: updatedOrders,
             status: overallStatus,
+            verifiedBy: 'Brand Operations Partner',
+            verifiedAt: new Date().toISOString(),
           };
         }
         return inv;
@@ -134,6 +164,7 @@ export function InvoiceProvider({ children }) {
             ...ord,
             status: INVOICE_STATUSES.UNDER_REVIEW,
             rejectionReason: null,
+            remarks: null,
           }));
           return {
             ...inv,
@@ -158,8 +189,8 @@ export function InvoiceProvider({ children }) {
         orderDate: '2026-09-20',
         orderAmount: 2000,
         submittedDate: '2026-09-12',
-        productName: 'Head & Shoulders Deep Cleanse Shampoo',
-        productSubtitle: 'Deep Cleanse Anti-Dandruff 650ml • Official Brand Store',
+        productName: 'Product 1',
+        productSubtitle: '',
         productImage: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=500&auto=format&fit=crop&q=80',
         invoicePdf: {
           name: 'Myntra_Invoice_0012344556.pdf',
@@ -245,10 +276,11 @@ export function InvoiceProvider({ children }) {
     return claimRecord;
   };
 
-  // Reset to initial mock data
   const resetInvoices = () => {
     setInvoices(INITIAL_INVOICES);
-    localStorage.setItem('hp_creator_invoices_v2', JSON.stringify(INITIAL_INVOICES));
+    localStorage.setItem('hp_creator_invoices_v4', JSON.stringify(INITIAL_INVOICES));
+    localStorage.removeItem('hp_creator_invoices_v3');
+    localStorage.removeItem('hp_creator_invoices_v2');
   };
 
   // Selectors
@@ -262,13 +294,10 @@ export function InvoiceProvider({ children }) {
     [invoices]
   );
   const approvedCount = useMemo(() =>
-    invoices.filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified').length,
+    invoices.filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified' || inv.status === 'Reimbursed').length,
     [invoices]
   );
-  const reimbursedCount = useMemo(() =>
-    invoices.filter(inv => inv.status === INVOICE_STATUSES.REIMBURSED).length,
-    [invoices]
-  );
+  const reimbursedCount = 0;
   const rejectedCount = useMemo(() =>
     invoices.filter(inv => inv.status === INVOICE_STATUSES.REJECTED).length,
     [invoices]
@@ -286,16 +315,11 @@ export function InvoiceProvider({ children }) {
   );
   const totalApprovedAmount = useMemo(() =>
     invoices
-      .filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified')
+      .filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified' || inv.status === 'Reimbursed')
       .reduce((s, inv) => s + (inv.totalAmount || inv.totalOrderAmount || 0), 0),
     [invoices]
   );
-  const totalReimbursedAmount = useMemo(() =>
-    invoices
-      .filter(inv => inv.status === INVOICE_STATUSES.REIMBURSED)
-      .reduce((s, inv) => s + (inv.totalAmount || inv.totalOrderAmount || 0), 0),
-    [invoices]
-  );
+  const totalReimbursedAmount = 0;
 
   return (
     <InvoiceContext.Provider

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   FileText, CheckCircle2, Clock, XCircle, DollarSign,
-  Download, Eye, Search, AlertCircle, Landmark, Sparkles
+  Download, Eye, Search, AlertCircle, Sparkles
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { useInvoices } from '../../context/InvoiceContext';
@@ -26,17 +26,14 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
   const totalClaimed = useMemo(() => campaignInvoices.reduce((s, inv) => s + (inv.totalOrderAmount || inv.totalAmount || 0), 0), [campaignInvoices]);
   const pendingInvoices = useMemo(() => campaignInvoices.filter(inv => inv.status === INVOICE_STATUSES.UNDER_REVIEW || inv.status === 'Pending Verification'), [campaignInvoices, INVOICE_STATUSES]);
   const pendingAmount = useMemo(() => pendingInvoices.reduce((s, inv) => s + (inv.totalOrderAmount || inv.totalAmount || 0), 0), [pendingInvoices]);
-  const approvedInvoices = useMemo(() => campaignInvoices.filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === INVOICE_STATUSES.VERIFIED), [campaignInvoices, INVOICE_STATUSES]);
+  const approvedInvoices = useMemo(() => campaignInvoices.filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === INVOICE_STATUSES.VERIFIED || inv.status === 'Reimbursed'), [campaignInvoices, INVOICE_STATUSES]);
   const approvedAmount = useMemo(() => approvedInvoices.reduce((s, inv) => s + (inv.totalOrderAmount || inv.totalAmount || 0), 0), [approvedInvoices]);
-  const reimbursedInvoices = useMemo(() => campaignInvoices.filter(inv => inv.status === INVOICE_STATUSES.REIMBURSED), [campaignInvoices, INVOICE_STATUSES]);
-  const reimbursedAmount = useMemo(() => reimbursedInvoices.reduce((s, inv) => s + (inv.totalOrderAmount || inv.totalAmount || 0), 0), [reimbursedInvoices]);
 
   // Search and status filtered
   const filteredList = useMemo(() => {
     return campaignInvoices.filter(inv => {
       if ((statusFilter === 'pending' || statusFilter === 'under_review') && inv.status !== INVOICE_STATUSES.UNDER_REVIEW && inv.status !== 'Pending Verification') return false;
-      if (statusFilter === 'approved' && inv.status !== INVOICE_STATUSES.APPROVED && inv.status !== INVOICE_STATUSES.VERIFIED) return false;
-      if (statusFilter === 'reimbursed' && inv.status !== INVOICE_STATUSES.REIMBURSED) return false;
+      if (statusFilter === 'approved' && inv.status !== INVOICE_STATUSES.APPROVED && inv.status !== INVOICE_STATUSES.VERIFIED && inv.status !== 'Reimbursed') return false;
       if (statusFilter === 'rejected' && inv.status !== INVOICE_STATUSES.REJECTED) return false;
 
       if (search.trim()) {
@@ -56,10 +53,9 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case INVOICE_STATUSES.REIMBURSED:
-        return { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', label: 'Reimbursed', icon: CheckCircle2 };
       case INVOICE_STATUSES.APPROVED:
       case INVOICE_STATUSES.VERIFIED:
+      case 'Reimbursed':
         return { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe', label: 'Approved', icon: CheckCircle2 };
       case INVOICE_STATUSES.REJECTED:
         return { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', label: 'Rejected', icon: XCircle };
@@ -100,15 +96,6 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
           <div className="camp-invoices-tab__kpi-value">{formatCurrency(approvedAmount)}</div>
           <div className="camp-invoices-tab__kpi-sub">{approvedInvoices.length} approved & scheduled</div>
         </div>
-
-        <div className="camp-invoices-tab__kpi">
-          <div className="camp-invoices-tab__kpi-top">
-            <span className="camp-invoices-tab__kpi-label">REIMBURSED & SETTLED</span>
-            <Landmark size={16} color="#059669" />
-          </div>
-          <div className="camp-invoices-tab__kpi-value" style={{ color: '#059669' }}>{formatCurrency(reimbursedAmount)}</div>
-          <div className="camp-invoices-tab__kpi-sub">{reimbursedInvoices.length} settled with bank UTR</div>
-        </div>
       </div>
 
       {/* Filter and Control Bar */}
@@ -136,14 +123,6 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
           >
             <CheckCircle2 size={13} color="#4f46e5" />
             <span>Approved ({approvedInvoices.length})</span>
-          </button>
-          <button
-            type="button"
-            className={`camp-invoices-tab__pill ${statusFilter === 'reimbursed' ? 'camp-invoices-tab__pill--active' : ''}`}
-            onClick={() => setStatusFilter('reimbursed')}
-          >
-            <CheckCircle2 size={13} color="#059669" />
-            <span>Reimbursed ({reimbursedInvoices.length})</span>
           </button>
         </div>
 
@@ -181,11 +160,11 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
           <table className="camp-invoices-table">
             <thead>
               <tr>
-                <th style={{ width: '16%' }}>INVOICE #</th>
+                <th style={{ width: '16%' }}>ORDER ID</th>
                 <th style={{ width: '24%' }}>CREATOR</th>
                 <th style={{ width: '22%' }}>EXPENSE CATEGORY</th>
                 <th style={{ width: '14%' }}>CLAIMED (₹)</th>
-                <th style={{ width: '10%' }}>ATTACHMENTS</th>
+                <th style={{ width: '10%' }}>INVOICES</th>
                 <th style={{ width: '14%' }}>STATUS</th>
                 <th style={{ width: '10%', textAlign: 'right' }}>ACTION</th>
               </tr>
@@ -202,11 +181,8 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
                     <td>
                       <div>
                         <span style={{ fontWeight: 800, fontFamily: 'monospace', color: 'var(--hp-primary, #6538ea)', fontSize: 13 }}>
-                          {invoice.invoiceNumber}
-                        </span>
-                        <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
                           Order #{invoice.primaryOrderId || invoice.invoiceNumber}
-                        </div>
+                        </span>
                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
                           📅 {formatDate(invoice.orderDate || invoice.invoiceDate)}
                         </div>
@@ -268,7 +244,12 @@ export default function CampaignInvoicesTab({ campaignId, campaignName }) {
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#475569' }}>
                         <FileText size={13} color="var(--hp-primary, #6538ea)" />
-                        <span style={{ fontWeight: 600 }}>{invoice.attachments?.length || 0} proofs</span>
+                        <span style={{ fontWeight: 600 }}>
+                          {(() => {
+                            const count = invoice.attachments?.length || 1;
+                            return `${count} ${count === 1 ? 'invoice' : 'invoices'}`;
+                          })()}
+                        </span>
                       </div>
                     </td>
 
