@@ -103,6 +103,9 @@ export default function InvoiceDetailModal({ invoice: propInvoice, onClose, onRe
       case 'Reimbursed':
       case 'Approved':
         return { bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe', label: 'Approved' };
+      case INVOICE_STATUSES.PARTIALLY_APPROVED:
+      case 'Partially Approved':
+        return { bg: '#f3e8ff', color: '#7c3aed', border: '#ddd6fe', label: 'Partially Approved' };
       case INVOICE_STATUSES.REJECTED:
       case 'Rejected':
         return { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', label: 'Rejected' };

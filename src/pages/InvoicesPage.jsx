@@ -92,35 +92,84 @@ export default function InvoicesPage() {
     });
   }, [invoices, statusFilter, campaignFilter, search, INVOICE_STATUSES]);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case INVOICE_STATUSES.APPROVED:
-      case INVOICE_STATUSES.VERIFIED:
-      case 'Reimbursed':
-        return {
-          bg: '#eef2ff',
-          color: '#4f46e5',
-          border: '#c7d2fe',
-          label: 'Approved',
-          icon: CheckCircle2,
-        };
-      case INVOICE_STATUSES.REJECTED:
-        return {
-          bg: '#fef2f2',
-          color: '#dc2626',
-          border: '#fecaca',
-          label: 'Rejected',
-          icon: XCircle,
-        };
-      default:
-        return {
-          bg: '#fef3c7',
-          color: '#b45309',
-          border: '#fde68a',
-          label: 'Under Review',
-          icon: Clock,
-        };
+  const getStatusBadge = (invoice) => {
+    const status = typeof invoice === 'string' ? invoice : invoice?.status;
+    const orders = typeof invoice === 'object' && invoice?.orders ? invoice.orders : [];
+    const totalOrders = orders.length || invoice?.ordersCount || 1;
+
+    const approvedCount = orders.filter(o =>
+      o.status === INVOICE_STATUSES.APPROVED || o.status === 'Approved' || o.status === 'Verified' || o.status === 'Reimbursed'
+    ).length;
+    const rejectedCount = orders.filter(o =>
+      o.status === INVOICE_STATUSES.REJECTED || o.status === 'Rejected'
+    ).length;
+    const pendingCount = orders.filter(o =>
+      o.status === INVOICE_STATUSES.UNDER_REVIEW || o.status === 'Under Review' || o.status === 'Pending Verification' || !o.status
+    ).length;
+
+    const isPartiallyApproved = status === INVOICE_STATUSES.PARTIALLY_APPROVED ||
+      status === 'Partially Approved' ||
+      (approvedCount > 0 && (rejectedCount > 0 || pendingCount > 0));
+
+    const isApproved = !isPartiallyApproved && (
+      status === INVOICE_STATUSES.APPROVED ||
+      status === 'Approved' ||
+      status === INVOICE_STATUSES.VERIFIED ||
+      status === 'Reimbursed'
+    );
+
+    const isRejected = !isPartiallyApproved && (
+      status === INVOICE_STATUSES.REJECTED ||
+      status === 'Rejected'
+    );
+
+    if (isPartiallyApproved) {
+      let subtext = `${approvedCount} approved · ${rejectedCount > 0 ? `${rejectedCount} rejected` : `${pendingCount} pending`}`;
+      if (rejectedCount > 0 && pendingCount > 0) {
+        subtext = `${approvedCount} approved · ${rejectedCount} rejected`;
+      }
+      return {
+        bg: '#f3e8ff',
+        color: '#7c3aed',
+        border: '#ddd6fe',
+        label: 'Partially Approved',
+        icon: CheckCircle2,
+        subtext,
+      };
     }
+
+    if (isApproved) {
+      const displayApproved = approvedCount || totalOrders;
+      return {
+        bg: '#eef2ff',
+        color: '#4f46e5',
+        border: '#c7d2fe',
+        label: 'Approved',
+        icon: CheckCircle2,
+        subtext: `${displayApproved} of ${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'} approved`,
+      };
+    }
+
+    if (isRejected) {
+      const displayRejected = rejectedCount || totalOrders;
+      return {
+        bg: '#fef2f2',
+        color: '#dc2626',
+        border: '#fecaca',
+        label: 'Rejected',
+        icon: XCircle,
+        subtext: `${displayRejected} of ${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'} rejected`,
+      };
+    }
+
+    return {
+      bg: '#fef3c7',
+      color: '#b45309',
+      border: '#fde68a',
+      label: 'Under Review',
+      icon: Clock,
+      subtext: `0 approved · ${totalOrders} pending`,
+    };
   };
 
   const handleStatusTab = (tab) => {
@@ -289,17 +338,17 @@ export default function InvoicesPage() {
           <table className="invoices-table">
             <thead>
               <tr>
-                <th style={{ width: '28%' }}>CREATOR</th>
-                <th style={{ width: '28%' }}>CAMPAIGN</th>
-                <th style={{ width: '16%' }}>CLAIMED AMOUNT</th>
+                <th style={{ width: '26%' }}>CREATOR</th>
+                <th style={{ width: '26%' }}>CAMPAIGN</th>
+                <th style={{ width: '15%' }}>CLAIMED AMOUNT</th>
                 <th style={{ width: '12%' }}>INVOICES</th>
-                <th style={{ width: '12%' }}>STATUS</th>
+                <th style={{ width: '17%' }}>STATUS</th>
                 <th style={{ width: '4%', textAlign: 'right' }}></th>
               </tr>
             </thead>
             <tbody>
               {filteredInvoices.map(invoice => {
-                const badge = getStatusBadge(invoice.status);
+                const badge = getStatusBadge(invoice);
                 const BadgeIcon = badge.icon;
 
                 return (
@@ -363,7 +412,7 @@ export default function InvoicesPage() {
                         <FileText size={14} color="var(--hp-primary, #6538ea)" />
                         <span style={{ fontWeight: 600 }}>
                           {(() => {
-                            const count = invoice.attachments?.length || invoice.orders?.length || 1;
+                            const count = invoice.orders?.length || invoice.ordersCount || invoice.attachments?.length || 1;
                             return `${count} ${count === 1 ? 'invoice' : 'invoices'}`;
                           })()}
                         </span>
@@ -372,23 +421,28 @@ export default function InvoicesPage() {
 
                     {/* Status */}
                     <td>
-                      <span
-                        style={{
-                          background: badge.bg,
-                          color: badge.color,
-                          border: `1px solid ${badge.border}`,
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <BadgeIcon size={12} />
-                        <span>{badge.label}</span>
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                        <span
+                          style={{
+                            background: badge.bg,
+                            color: badge.color,
+                            border: `1px solid ${badge.border}`,
+                            padding: '3px 9px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <BadgeIcon size={12} />
+                          <span>{badge.label}</span>
+                        </span>
+                        <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                          {badge.subtext}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Arrow */}

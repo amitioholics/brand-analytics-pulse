@@ -115,13 +115,19 @@ export function InvoiceProvider({ children }) {
             }
             return ord;
           });
-          const allApproved = updatedOrders.length > 0 && updatedOrders.every(o => o.status === INVOICE_STATUSES.APPROVED);
-          const allRejected = updatedOrders.length > 0 && updatedOrders.every(o => o.status === INVOICE_STATUSES.REJECTED);
-          const overallStatus = allApproved
-            ? INVOICE_STATUSES.APPROVED
-            : allRejected
-            ? INVOICE_STATUSES.REJECTED
-            : INVOICE_STATUSES.UNDER_REVIEW;
+          const allApproved = updatedOrders.length > 0 && updatedOrders.every(o => o.status === INVOICE_STATUSES.APPROVED || o.status === 'Approved');
+          const allRejected = updatedOrders.length > 0 && updatedOrders.every(o => o.status === INVOICE_STATUSES.REJECTED || o.status === 'Rejected');
+          const anyApproved = updatedOrders.some(o => o.status === INVOICE_STATUSES.APPROVED || o.status === 'Approved');
+          const anyRejectedOrPending = updatedOrders.some(o => o.status !== INVOICE_STATUSES.APPROVED && o.status !== 'Approved');
+
+          let overallStatus = INVOICE_STATUSES.UNDER_REVIEW;
+          if (allApproved) {
+            overallStatus = INVOICE_STATUSES.APPROVED;
+          } else if (allRejected) {
+            overallStatus = INVOICE_STATUSES.REJECTED;
+          } else if (anyApproved && anyRejectedOrPending) {
+            overallStatus = INVOICE_STATUSES.PARTIALLY_APPROVED || 'Partially Approved';
+          }
 
           return {
             ...inv,
