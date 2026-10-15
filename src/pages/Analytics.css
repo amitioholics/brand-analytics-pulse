@@ -559,10 +559,10 @@
   /* inherits from .fade-in */
 }
 
-/* 4-column KPI cards row */
+/* 3-column KPI cards row */
 .analytics__product-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 }

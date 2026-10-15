@@ -222,16 +222,6 @@ export default function Analytics() {
               </div>
             </div>
             <div className="analytics__prod-kpi-card">
-              <div className="analytics__prod-kpi-icon" style={{ background: '#fff7ed' }}>
-                <Users size={20} color="#f59e0b" />
-              </div>
-              <div>
-                <div className="analytics__prod-kpi-label">Active Creators</div>
-                <div className="analytics__prod-kpi-val" style={{ color: '#f59e0b' }}>{productKPIs.activeCreators}</div>
-                <div className="analytics__prod-kpi-sub">Creators driving product sales</div>
-              </div>
-            </div>
-            <div className="analytics__prod-kpi-card">
               <div className="analytics__prod-kpi-icon" style={{ background: '#eff6ff' }}>
                 <Hash size={20} color="#3b82f6" />
               </div>
