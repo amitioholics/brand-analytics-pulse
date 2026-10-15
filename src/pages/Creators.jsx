@@ -221,16 +221,6 @@ export default function Creators() {
       ),
     },
     {
-      key: 'productOrders',
-      label: 'ORDERS',
-      align: 'right',
-      render: (val) => (
-        <span style={{ fontWeight: 600, color: '#0f172a' }}>
-          {val > 0 ? formatNumber(val) : '—'}
-        </span>
-      ),
-    },
-    {
       key: 'productUnitsSold',
       label: 'UNITS SOLD',
       align: 'right',
@@ -242,7 +232,7 @@ export default function Creators() {
     },
     {
       key: 'productSalesValue',
-      label: 'SALES VALUE',
+      label: 'SALES',
       align: 'right',
       render: (val) => (
         <span style={{ fontWeight: 700, color: val > 0 ? '#059669' : '#94a3b8' }}>
@@ -299,9 +289,9 @@ export default function Creators() {
                 <div className="pulse-kpi-card__icon">
                   <Package size={16} />
                 </div>
-                <span className="pulse-kpi-card__label">TOTAL ORDERS</span>
+                <span className="pulse-kpi-card__label">TOTAL UNITS SOLD</span>
               </div>
-              <div className="pulse-kpi-card__val">{formatNumber(productTotals.orders)}</div>
+              <div className="pulse-kpi-card__val">{formatNumber(productTotals.unitsSold)}</div>
             </div>
             <div className="pulse-kpi-card">
               <div className="pulse-kpi-card__header">

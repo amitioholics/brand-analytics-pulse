@@ -244,11 +244,11 @@ export default function CreatorDetail() {
               {/* Mini KPI strip */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
                 <div style={{ background: '#ede9fe', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--text-xs)', color: '#6538ea', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Orders</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: '#6538ea', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Units Sold</div>
                   <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: '#6538ea' }}>{campaignProductTotals.unitsSold}</div>
                 </div>
                 <div style={{ background: '#ecfdf5', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--text-xs)', color: '#059669', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales Value</div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: '#059669', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Sales</div>
                   <div style={{ fontSize: 'var(--text-xl)', fontWeight: 800, color: '#059669' }}>{formatCurrency(campaignProductTotals.salesValue)}</div>
                 </div>
                 <div style={{ background: '#eff6ff', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', textAlign: 'center' }}>
@@ -268,8 +268,8 @@ export default function CreatorDetail() {
                     <thead>
                       <tr>
                         <th>Product</th>
-                        <th style={{ textAlign: 'right' }}>Orders</th>
-                        <th style={{ textAlign: 'right' }}>Sales Value</th>
+                        <th style={{ textAlign: 'right' }}>Units Sold</th>
+                        <th style={{ textAlign: 'right' }}>Sales</th>
                       </tr>
                     </thead>
                     <tbody>

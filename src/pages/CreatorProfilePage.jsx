@@ -412,9 +412,8 @@ export default function CreatorProfilePage() {
                     <tr>
                       <th style={{ textAlign: 'left' }}>PRODUCT</th>
                       <th style={{ textAlign: 'left' }}>CATEGORY</th>
-                      <th style={{ textAlign: 'right' }}>ORDERS</th>
                       <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
-                      <th style={{ textAlign: 'right' }}>SALES VALUE</th>
+                      <th style={{ textAlign: 'right' }}>SALES</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -425,9 +424,6 @@ export default function CreatorProfilePage() {
                         </td>
                         <td style={{ textAlign: 'left' }}>
                           <span className="product-category-tag">{row.productCategory}</span>
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
-                          {formatNumber(row.orders)}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
                           {formatNumber(row.unitsSold)}
