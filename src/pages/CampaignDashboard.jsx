@@ -490,16 +490,15 @@ export default function CampaignDashboard() {
                       <th style={{ width: 44 }}>#</th>
                       <th style={{ textAlign: 'left' }}>PRODUCT</th>
                       <th style={{ textAlign: 'left' }}>CATEGORY</th>
-                      <th style={{ textAlign: 'right' }}>UNIT PRICE</th>
-                      <th style={{ textAlign: 'right' }}>CREATORS SELLING</th>
+                      <th style={{ textAlign: 'right' }}>CREATORS</th>
                       <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
-                      <th style={{ textAlign: 'right' }}>SALES VALUE</th>
+                      <th style={{ textAlign: 'right' }}>SALES</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productSales.productsList.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
                           No product sales tracked for this campaign yet.
                         </td>
                       </tr>
@@ -522,9 +521,6 @@ export default function CampaignDashboard() {
                           </td>
                           <td style={{ textAlign: 'left' }}>
                             <span className="product-category-tag">{prod.productCategory}</span>
-                          </td>
-                          <td style={{ textAlign: 'right', color: '#6b7280' }}>
-                            {formatCurrency(prod.pricePerUnit)}
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
                             {prod.creatorCount} {prod.creatorCount === 1 ? 'Creator' : 'Creators'}
@@ -552,7 +548,7 @@ export default function CampaignDashboard() {
                       <th style={{ width: 44 }}>#</th>
                       <th style={{ textAlign: 'left' }}>CREATOR</th>
                       <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
-                      <th style={{ textAlign: 'right' }}>SALES VALUE</th>
+                      <th style={{ textAlign: 'right' }}>SALES</th>
                     </tr>
                   </thead>
                   <tbody>
