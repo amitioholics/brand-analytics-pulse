@@ -260,7 +260,7 @@ export default function Analytics() {
                     <th style={{ width: 44 }}>#</th>
                     <th>Product</th>
                     <th>Category</th>
-                    <th style={{ textAlign: 'right' }}>Creators Selling</th>
+                    <th style={{ textAlign: 'right' }}>Total Creators</th>
                     <th style={{ textAlign: 'right' }}>Orders</th>
                     <th style={{ textAlign: 'right' }}>Units Sold</th>
                     <th style={{ textAlign: 'right' }}>Sales Value</th>
