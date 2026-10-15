@@ -2,23 +2,22 @@ import { useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { creators } from '../data/creators';
 import { getCreatorOverallMetrics } from '../data/metrics';
-import { formatNumber, formatCurrency, formatCompactNumber, getInitials, getSocialUrl } from '../utils/formatters';
+import { formatNumber, formatCurrency, formatCompactNumber, getInitials } from '../utils/formatters';
 import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
 import DataTable from '../components/common/DataTable';
-import KPICard from '../components/common/KPICard';
-import { Users, Layers, FileVideo, ShoppingCart, ExternalLink, ArrowRight, Package, TrendingUp, BarChart2 } from 'lucide-react';
+import { Users, Layers, FileVideo, ShoppingCart, Package, TrendingUp, BarChart2 } from 'lucide-react';
 import { getAggregatedProductSales } from '../data/productSales';
 import { usePortal } from '../context/PortalContext';
 import './Creators.css';
 
 export default function Creators() {
   const navigate = useNavigate();
-  const { portal, currentConfig, isBrandConnect } = usePortal();
+  const { portal, currentConfig } = usePortal();
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
   const [campaignCountFilter, setCampaignCountFilter] = useState('');
-  const [creatorsViewTab, setCreatorsViewTab] = useState('content'); // 'content' | 'product'
+  const [creatorsViewTab, setCreatorsViewTab] = useState('content'); // 'content' | 'product' | 'all'
 
   // Product sales per creator for this portal
   const productByCreator = useMemo(() => {
@@ -70,11 +69,24 @@ export default function Creators() {
     );
   }, [enrichedCreators]);
 
+  // Product totals
+  const productTotals = useMemo(() => {
+    return enrichedCreators.reduce(
+      (acc, c) => {
+        acc.orders += c.productOrders;
+        acc.salesValue += c.productSalesValue;
+        acc.unitsSold += c.productUnitsSold;
+        return acc;
+      },
+      { orders: 0, salesValue: 0, unitsSold: 0 }
+    );
+  }, [enrichedCreators]);
+
   const filtered = useMemo(() => {
     let result = enrichedCreators;
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(c => c.name.toLowerCase().includes(q) || c.socialHandle.toLowerCase().includes(q));
+      result = result.filter(c => c.name.toLowerCase().includes(q) || c.socialHandle?.toLowerCase().includes(q));
     }
     if (platformFilter) {
       result = result.filter(c => c.platform === platformFilter);
@@ -88,221 +100,162 @@ export default function Creators() {
 
   const handleSearch = useCallback((val) => setSearch(val), []);
 
-  const columns = [
+  // Shared creator column cell renderer matching pulse.haulpack.com exactly
+  const renderCreatorCell = (val, row) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {row.avatarUrl ? (
+        <img
+          src={row.avatarUrl}
+          alt={val}
+          style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+        />
+      ) : (
+        <div style={{
+          width: 34, height: 34, borderRadius: '50%',
+          background: row.avatarColor || 'var(--hp-primary, #6538ea)',
+          color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-heading)', flexShrink: 0,
+        }}>
+          {getInitials(val)}
+        </div>
+      )}
+      <div>
+        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '13.5px' }}>{val}</div>
+        {row.socialHandle && (
+          <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: 1 }}>{row.socialHandle}</div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Shared platform cell renderer
+  const renderPlatformCell = (val) => {
+    if (!val || val === '—') return <span style={{ color: '#94a3b8' }}>—</span>;
+    const isIG = val === 'Instagram';
+    return (
+      <span className={`creators-platform-tag ${isIG ? 'creators-platform-tag--ig' : 'creators-platform-tag--yt'}`}>
+        {val}
+      </span>
+    );
+  };
+
+  // Shared Profile -> action cell
+  const renderActionCell = (_, row) => (
+    <div style={{ textAlign: 'right' }}>
+      <span
+        className="creators-table__profile-link"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/creators/${row.id}`);
+        }}
+      >
+        <span>Profile</span>
+        <span style={{ fontSize: '15px', lineHeight: 1 }}>&rarr;</span>
+      </span>
+    </div>
+  );
+
+  // Content Columns (matches pulse.haulpack.com/creators 1:1)
+  const contentColumns = [
     {
       key: 'name',
-      label: 'Creator',
-      width: '230px',
-      render: (val, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: row.avatarColor || 'var(--hp-primary)',
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-heading)', flexShrink: 0,
-          }}>
-            {getInitials(val)}
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, color: 'var(--hp-text-primary)' }}>{val}</div>
-            <a
-              href={getSocialUrl(row.platform, row.socialHandle)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                fontSize: 'var(--text-xs)',
-                color: 'var(--hp-primary)',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 2,
-              }}
-              title={`Open ${row.name}'s ${row.platform} profile`}
-            >
-              <span>{row.socialHandle}</span>
-            </a>
-          </div>
-        </div>
-      ),
+      label: 'CREATOR',
+      width: '260px',
+      render: renderCreatorCell,
     },
     {
       key: 'platform',
-      label: 'Platform',
-      render: (val, row) => {
-        const url = getSocialUrl(val, row.socialHandle);
-        const isIG = val === 'Instagram';
-        return (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            title={`Open ${row.name}'s ${val} profile (${row.socialHandle})`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '3px 9px',
-              borderRadius: '6px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
-              textDecoration: 'none',
-              color: isIG ? '#e1306c' : '#ef4444',
-              background: isIG ? '#fdf2f8' : '#fef2f2',
-              border: `1px solid ${isIG ? '#fbcfe8' : '#fecaca'}`,
-              transition: 'all var(--transition-fast)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 2px 5px rgba(0,0,0,0.06)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <span>{val}</span>
-            <ExternalLink size={12} strokeWidth={2.2} />
-          </a>
-        );
-      },
-    },
-    {
-      key: 'followerCount',
-      label: 'Followers',
-      align: 'right',
-      render: (val) => formatCompactNumber(val),
+      label: 'PLATFORMS',
+      render: renderPlatformCell,
     },
     {
       key: 'campaignsCount',
-      label: 'Campaigns',
-      align: 'center',
+      label: 'CAMPAIGNS',
       render: (val) => (
-        <span style={{
-          display: 'inline-block',
-          padding: '2px 8px',
-          borderRadius: 12,
-          fontSize: 'var(--text-xs)',
-          fontWeight: 600,
-          background: val >= 2 ? 'var(--hp-primary-subtle)' : 'var(--hp-bg-body)',
-          color: val >= 2 ? 'var(--hp-primary)' : 'var(--hp-text-secondary)',
-        }}>
+        <span style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>
           {val} {val === 1 ? 'Campaign' : 'Campaigns'}
         </span>
       ),
     },
     {
       key: 'contentCount',
-      label: isBrandConnect ? 'Deliverables' : 'Content',
+      label: 'APPROVED LIVE POSTS',
       align: 'right',
-      render: (val) => val,
+      render: (val) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatNumber(val || 0)}</span>,
     },
     {
       key: 'views',
-      label: isBrandConnect ? 'Reach' : 'Total Views',
+      label: 'REACH',
       align: 'right',
-      render: (val) => formatCompactNumber(val),
-    },
-    {
-      key: 'sales',
-      label: isBrandConnect ? 'Media Value' : 'Sales Generated',
-      align: 'right',
-      render: (val) => formatCurrency(val),
+      render: (val) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatCompactNumber(val || 0)}</span>,
     },
     {
       key: 'action',
       label: '',
       align: 'right',
       sortable: false,
-      render: (_, row) => (
-        <button
-          className="btn btn-secondary creators-table__view-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/creators/${row.id}`);
-          }}
-        >
-          <span>Analytics</span>
-          <ArrowRight size={13} />
-        </button>
-      ),
+      render: renderActionCell,
     },
   ];
 
-  // Product Sales columns
+  // Product Sales Columns
   const productColumns = [
     {
       key: 'name',
-      label: 'Creator',
-      width: '230px',
-      render: (val, row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: row.avatarColor || 'var(--hp-primary)',
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-heading)', flexShrink: 0,
-          }}>
-            {getInitials(val)}
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, color: 'var(--hp-text-primary)' }}>{val}</div>
-            <a
-              href={getSocialUrl(row.platform, row.socialHandle)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              style={{ fontSize: 'var(--text-xs)', color: 'var(--hp-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 2 }}
-            >
-              <span>{row.socialHandle}</span>
-            </a>
-          </div>
-        </div>
-      ),
+      label: 'CREATOR',
+      width: '240px',
+      render: renderCreatorCell,
     },
     {
       key: 'platform',
-      label: 'Platform',
-      render: (val) => {
-        const isIG = val === 'Instagram';
-        return (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px',
-            borderRadius: '6px', fontSize: 'var(--text-xs)', fontWeight: 600,
-            color: isIG ? '#e1306c' : '#ef4444',
-            background: isIG ? '#fdf2f8' : '#fef2f2',
-            border: `1px solid ${isIG ? '#fbcfe8' : '#fecaca'}`,
-          }}>{val}</span>
-        );
-      },
+      label: 'PLATFORMS',
+      render: renderPlatformCell,
+    },
+    {
+      key: 'campaignsCount',
+      label: 'CAMPAIGNS',
+      render: (val) => (
+        <span style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>
+          {val} {val === 1 ? 'Campaign' : 'Campaigns'}
+        </span>
+      ),
     },
     {
       key: 'productOrders',
-      label: 'Orders',
+      label: 'ORDERS',
       align: 'right',
       render: (val) => (
-        <span style={{ fontWeight: 700, color: 'var(--hp-text-primary)' }}>
+        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+          {val > 0 ? formatNumber(val) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'productUnitsSold',
+      label: 'UNITS SOLD',
+      align: 'right',
+      render: (val) => (
+        <span style={{ fontWeight: 600, color: '#0f172a' }}>
           {val > 0 ? formatNumber(val) : '—'}
         </span>
       ),
     },
     {
       key: 'productSalesValue',
-      label: 'Sales Value',
+      label: 'SALES VALUE',
       align: 'right',
       render: (val) => (
-        <span style={{ fontWeight: 700, color: val > 0 ? '#059669' : 'var(--hp-text-secondary)' }}>
+        <span style={{ fontWeight: 700, color: val > 0 ? '#059669' : '#94a3b8' }}>
           {val > 0 ? formatCurrency(val) : '—'}
         </span>
       ),
     },
     {
       key: 'productCount',
-      label: 'Products',
+      label: 'PRODUCTS',
       align: 'right',
       render: (val) => (
-        <span style={{ fontWeight: 600, color: 'var(--hp-text-secondary)' }}>
+        <span style={{ fontWeight: 500, color: '#475569' }}>
           {val > 0 ? val : '—'}
         </span>
       ),
@@ -312,56 +265,162 @@ export default function Creators() {
       label: '',
       align: 'right',
       sortable: false,
-      render: (_, row) => (
-        <button
-          className="btn btn-secondary creators-table__view-btn"
-          onClick={(e) => { e.stopPropagation(); navigate(`/creators/${row.id}`); }}
-        >
-          <span>Analytics</span>
-          <ArrowRight size={13} />
-        </button>
-      ),
+      render: renderActionCell,
     },
   ];
+
+  // All Metrics Columns (Content + Product Sales)
+  const allColumns = [
+    {
+      key: 'name',
+      label: 'CREATOR',
+      width: '230px',
+      render: renderCreatorCell,
+    },
+    {
+      key: 'platform',
+      label: 'PLATFORMS',
+      render: renderPlatformCell,
+    },
+    {
+      key: 'campaignsCount',
+      label: 'CAMPAIGNS',
+      render: (val) => (
+        <span style={{ fontSize: '13px', color: '#334155', fontWeight: 500 }}>
+          {val} {val === 1 ? 'Campaign' : 'Campaigns'}
+        </span>
+      ),
+    },
+    {
+      key: 'contentCount',
+      label: 'APPROVED LIVE POSTS',
+      align: 'right',
+      render: (val) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatNumber(val || 0)}</span>,
+    },
+    {
+      key: 'views',
+      label: 'REACH',
+      align: 'right',
+      render: (val) => <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatCompactNumber(val || 0)}</span>,
+    },
+    {
+      key: 'productOrders',
+      label: 'ORDERS',
+      align: 'right',
+      render: (val) => (
+        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+          {val > 0 ? formatNumber(val) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'productSalesValue',
+      label: 'SALES VALUE',
+      align: 'right',
+      render: (val) => (
+        <span style={{ fontWeight: 700, color: val > 0 ? '#059669' : '#94a3b8' }}>
+          {val > 0 ? formatCurrency(val) : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      label: '',
+      align: 'right',
+      sortable: false,
+      render: renderActionCell,
+    },
+  ];
+
+  const activeColumns =
+    creatorsViewTab === 'product'
+      ? productColumns
+      : creatorsViewTab === 'all'
+      ? allColumns
+      : contentColumns;
 
   return (
     <div className="fade-in creators-page">
       <div className="creators-page__header">
-        <h1 className="creators-page__title">{currentConfig.name} Creators</h1>
+        <h1 className="creators-page__title">Pulse Creators</h1>
         <p className="creators-page__subtitle">
-          {isBrandConnect
-            ? 'Directory of creators enrolled in Brand Connect partnerships, deliverable tracking, and media reach.'
-            : 'Directory of creators enrolled in Reward Programs, multi-campaign performance, and sales attribution.'}
+          Directory of creators enrolled in Pulse partnerships, deliverable tracking, and media reach.
         </p>
       </div>
 
-      {/* Aggregate summary cards */}
-      <div className="creators-page__kpis">
-        <KPICard
-          icon={Users}
-          label="Total Influencers"
-          value={enrichedCreators.length}
-          change={`Enrolled in ${currentConfig.name}`}
-        />
-        <KPICard
-          icon={FileVideo}
-          label={isBrandConnect ? 'Total Deliverables' : 'Total Content Generated'}
-          value={formatNumber(totals.content)}
-          change="Reels & Videos"
-        />
-        <KPICard
-          icon={ShoppingCart}
-          label={isBrandConnect ? 'Total Media Value Driven' : 'Total Sales Driven'}
-          value={formatCurrency(totals.sales)}
-          change={isBrandConnect ? 'Brand campaign value' : 'Catalog revenue'}
-          positive={true}
-        />
+      {/* Aggregate summary cards matching pulse.haulpack.com */}
+      <div className={`creators-page__kpis ${creatorsViewTab === 'all' ? 'creators-page__kpis--4col' : ''}`}>
+        <div className="pulse-kpi-card">
+          <div className="pulse-kpi-card__header">
+            <div className="pulse-kpi-card__icon">
+              <Users size={16} />
+            </div>
+            <span className="pulse-kpi-card__label">TOTAL INFLUENCERS</span>
+          </div>
+          <div className="pulse-kpi-card__val">{enrichedCreators.length}</div>
+        </div>
+
+        {creatorsViewTab === 'product' ? (
+          <>
+            <div className="pulse-kpi-card">
+              <div className="pulse-kpi-card__header">
+                <div className="pulse-kpi-card__icon">
+                  <Package size={16} />
+                </div>
+                <span className="pulse-kpi-card__label">TOTAL ORDERS</span>
+              </div>
+              <div className="pulse-kpi-card__val">{formatNumber(productTotals.orders)}</div>
+            </div>
+            <div className="pulse-kpi-card">
+              <div className="pulse-kpi-card__header">
+                <div className="pulse-kpi-card__icon">
+                  <TrendingUp size={16} />
+                </div>
+                <span className="pulse-kpi-card__label">TOTAL PRODUCT SALES</span>
+              </div>
+              <div className="pulse-kpi-card__val">{formatCurrency(productTotals.salesValue)}</div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="pulse-kpi-card">
+              <div className="pulse-kpi-card__header">
+                <div className="pulse-kpi-card__icon">
+                  <FileVideo size={16} />
+                </div>
+                <span className="pulse-kpi-card__label">TOTAL APPROVED LIVE POSTS</span>
+              </div>
+              <div className="pulse-kpi-card__val">{formatNumber(totals.content)}</div>
+            </div>
+            <div className="pulse-kpi-card">
+              <div className="pulse-kpi-card__header">
+                <div className="pulse-kpi-card__icon">
+                  <Layers size={16} />
+                </div>
+                <span className="pulse-kpi-card__label">TOTAL REACH</span>
+              </div>
+              <div className="pulse-kpi-card__val">{formatCompactNumber(totals.views)}</div>
+            </div>
+          </>
+        )}
+
+        {creatorsViewTab === 'all' && (
+          <div className="pulse-kpi-card">
+            <div className="pulse-kpi-card__header">
+              <div className="pulse-kpi-card__icon">
+                <ShoppingCart size={16} />
+              </div>
+              <span className="pulse-kpi-card__label">TOTAL PRODUCT SALES</span>
+            </div>
+            <div className="pulse-kpi-card__val">{formatCurrency(productTotals.salesValue)}</div>
+          </div>
+        )}
       </div>
 
       <div className="creators-page__toolbar">
         <SearchBar placeholder="Search creator by name or @handle..." onSearch={handleSearch} />
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Content / Product Sales toggle */}
+          {/* Content / Product Sales / All toggle */}
           <div className="cp-perf-tabs">
             <button
               className={`cp-perf-tab ${creatorsViewTab === 'content' ? 'cp-perf-tab--active' : ''}`}
@@ -376,6 +435,13 @@ export default function Creators() {
             >
               <Package size={13} />
               Product Sales
+            </button>
+            <button
+              className={`cp-perf-tab ${creatorsViewTab === 'all' ? 'cp-perf-tab--active' : ''}`}
+              onClick={() => setCreatorsViewTab('all')}
+            >
+              <Layers size={13} />
+              All Metrics
             </button>
           </div>
           <FilterDropdown
@@ -392,7 +458,7 @@ export default function Creators() {
             value={campaignCountFilter}
             onChange={setCampaignCountFilter}
             options={[
-              { value: '3', label: 'All 3 Myntra Campaigns' },
+              { value: '3', label: '3 Campaigns' },
               { value: '2', label: '2 Campaigns' },
               { value: '1', label: '1 Campaign' },
             ]}
@@ -402,7 +468,7 @@ export default function Creators() {
 
       <DataTable
         key={creatorsViewTab}
-        columns={creatorsViewTab === 'product' ? productColumns : columns}
+        columns={activeColumns}
         data={filtered}
         pageSize={20}
         onRowClick={(row) => navigate(`/creators/${row.id}`)}
