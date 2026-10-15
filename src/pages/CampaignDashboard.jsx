@@ -559,21 +559,17 @@ export default function CampaignDashboard() {
                       <th style={{ textAlign: 'right' }}>ORDERS</th>
                       <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
                       <th style={{ textAlign: 'right' }}>SALES VALUE</th>
-                      <th style={{ textAlign: 'right' }}>SHARE</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productSales.creatorsList.length === 0 ? (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
                           No creator sales tracked for this campaign yet.
                         </td>
                       </tr>
                     ) : (
                       productSales.creatorsList.map((cr, idx) => {
-                        const sharePct = productSales.totals.totalSalesValue > 0
-                          ? ((cr.salesValue / productSales.totals.totalSalesValue) * 100).toFixed(1)
-                          : '0.0';
                         return (
                           <tr
                             key={cr.creatorId}
@@ -620,14 +616,6 @@ export default function CampaignDashboard() {
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
                               {formatCurrency(cr.salesValue)}
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ fontWeight: 600, color: '#6538ea', fontSize: 12 }}>{sharePct}%</span>
-                                <div style={{ width: 44, height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
-                                  <div style={{ width: `${Math.min(100, parseFloat(sharePct))}%`, height: '100%', background: '#6538ea' }} />
-                                </div>
-                              </div>
                             </td>
                           </tr>
                         );
