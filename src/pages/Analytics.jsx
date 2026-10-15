@@ -206,9 +206,9 @@ export default function Analytics() {
                 <Package size={20} color="#6538ea" />
               </div>
               <div>
-                <div className="analytics__prod-kpi-label">Total Orders</div>
+                <div className="analytics__prod-kpi-label">Total Units Sold</div>
                 <div className="analytics__prod-kpi-val">{formatNumber(productKPIs.totalUnitsSold)}</div>
-                <div className="analytics__prod-kpi-sub">Orders across all creators</div>
+                <div className="analytics__prod-kpi-sub">Units sold across all products</div>
               </div>
             </div>
             <div className="analytics__prod-kpi-card">
@@ -261,10 +261,8 @@ export default function Analytics() {
                     <th>Product</th>
                     <th>Category</th>
                     <th style={{ textAlign: 'right' }}>Total Creators</th>
-                    <th style={{ textAlign: 'right' }}>Orders</th>
                     <th style={{ textAlign: 'right' }}>Units Sold</th>
                     <th style={{ textAlign: 'right' }}>Sales Value</th>
-                    <th style={{ textAlign: 'right' }}>% GMV</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,21 +289,9 @@ export default function Analytics() {
                       <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                         {prod.creatorCount}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNumber(prod.orders)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNumber(prod.unitsSold)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
                         {formatCurrency(prod.salesValue)}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="analytics__share-pill">
-                          <div className="analytics__share-bar-track">
-                            <div
-                              className="analytics__share-bar-fill"
-                              style={{ width: `${Math.min(100, prod.sharePct)}%` }}
-                            />
-                          </div>
-                          <span className="analytics__share-text">{prod.sharePct}%</span>
-                        </div>
                       </td>
                     </tr>
                   ))}
