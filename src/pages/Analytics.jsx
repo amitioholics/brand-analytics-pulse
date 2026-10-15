@@ -260,7 +260,6 @@ export default function Analytics() {
                     <th style={{ width: 44 }}>#</th>
                     <th>Product</th>
                     <th>Category</th>
-                    <th style={{ textAlign: 'right' }}>Unit Price</th>
                     <th style={{ textAlign: 'right' }}>Creators Selling</th>
                     <th style={{ textAlign: 'right' }}>Orders</th>
                     <th style={{ textAlign: 'right' }}>Units Sold</th>
@@ -288,9 +287,6 @@ export default function Analytics() {
                       </td>
                       <td>
                         <span className="analytics__table-tag">{prod.productCategory}</span>
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 500, color: 'var(--hp-text-secondary)' }}>
-                        {formatCurrency(prod.pricePerUnit)}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                         {prod.creatorCount}
