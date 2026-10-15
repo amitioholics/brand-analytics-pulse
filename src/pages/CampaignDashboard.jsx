@@ -4,7 +4,7 @@ import {
   Users, FileText, Radio, Eye, Heart, Sparkles,
   Play, CheckCircle2, XCircle, AlertCircle, Clock,
   ArrowUpDown, ExternalLink, Send, Package, Receipt,
-  ChevronRight, ArrowLeft, ShoppingCart, TrendingUp,
+  ChevronRight, ArrowLeft, TrendingUp,
   ShoppingBag, Tag
 } from 'lucide-react';
 import { getCampaignById } from '../data/campaigns';
@@ -418,20 +418,8 @@ export default function CampaignDashboard() {
               </div>
             </div>
 
-            {/* 5 Product Sales Metric Cards Strip */}
+            {/* 4 Product Sales Metric Cards Strip */}
             <div className="campaign-product-kpi-grid">
-              <div className="campaign-product-kpi-card">
-                <div className="campaign-product-kpi-icon-box" style={{ background: '#ede9fe', color: '#6538ea' }}>
-                  <ShoppingCart size={18} />
-                </div>
-                <div>
-                  <div className="campaign-product-kpi-label">TOTAL ORDERS</div>
-                  <div className="campaign-product-kpi-val" style={{ color: '#6538ea' }}>
-                    {formatNumber(productSales.totals.totalOrders)}
-                  </div>
-                </div>
-              </div>
-
               <div className="campaign-product-kpi-card">
                 <div className="campaign-product-kpi-icon-box" style={{ background: '#ecfdf5', color: '#059669' }}>
                   <TrendingUp size={18} />
@@ -461,7 +449,7 @@ export default function CampaignDashboard() {
                   <Users size={18} />
                 </div>
                 <div>
-                  <div className="campaign-product-kpi-label">SELLING CREATORS</div>
+                  <div className="campaign-product-kpi-label">CREATORS</div>
                   <div className="campaign-product-kpi-val" style={{ color: '#d97706' }}>
                     {productSales.totals.activeCreators}
                   </div>
