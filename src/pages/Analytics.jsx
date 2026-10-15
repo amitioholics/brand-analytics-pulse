@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,7 +14,7 @@ import ExportButton from '../components/common/ExportButton';
 import {
   Users, FileVideo, Eye, ShoppingCart, MousePointerClick,
   ArrowUpRight, Sparkles, Smartphone, Video, Award, Target,
-  Package, BarChart2, TrendingUp, Hash, ChevronDown, ChevronUp,
+  Package, BarChart2, TrendingUp, Hash,
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import './Analytics.css';
@@ -39,8 +39,6 @@ export default function Analytics() {
   const [timeRange, setTimeRange] = useState('All Time');
   // Performance Analytics tab
   const [perfTab, setPerfTab] = useState('content'); // 'content' | 'product'
-  const [expandedProductId, setExpandedProductId] = useState(null);
-  const toggleExpandProduct = (id) => setExpandedProductId(prev => prev === id ? null : id);
 
   // Aggregated campaign metrics for current portal
   const portalCampaigns = useMemo(() => {
@@ -266,134 +264,58 @@ export default function Analytics() {
                     <th>Product</th>
                     <th>Category</th>
                     <th style={{ textAlign: 'right' }}>Unit Price</th>
-                    <th style={{ textAlign: 'left' }}>Creators Selling</th>
+                    <th style={{ textAlign: 'right' }}>Creators Selling</th>
                     <th style={{ textAlign: 'right' }}>Orders</th>
                     <th style={{ textAlign: 'right' }}>Units Sold</th>
                     <th style={{ textAlign: 'right' }}>Sales Value</th>
                     <th style={{ textAlign: 'right' }}>% GMV</th>
-                    <th style={{ textAlign: 'center', width: 36 }}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {productWiseRows.map((prod, idx) => {
-                    const isExpanded = expandedProductId === prod.productId;
-                    return (
-                      <Fragment key={prod.productId}>
-                        <tr
-                          className={`analytics__prod-row ${isExpanded ? 'analytics__prod-row--expanded' : ''}`}
-                          onClick={() => toggleExpandProduct(prod.productId)}
-                          style={{ cursor: 'pointer' }}
+                  {productWiseRows.map((prod, idx) => (
+                    <tr key={prod.productId}>
+                      <td>
+                        <div
+                          className="analytics__prod-rank"
+                          style={{ background: idx < 3 ? '#ede9fe' : 'var(--hp-bg)' }}
                         >
-                          <td>
+                          <span style={{ color: idx < 3 ? '#6538ea' : 'var(--hp-text-tertiary)', fontWeight: 700, fontSize: '0.72rem' }}>
+                            #{idx + 1}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="analytics__prod-table-product">
+                          <span className="analytics__prod-name">{prod.productName}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="analytics__table-tag">{prod.productCategory}</span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 500, color: 'var(--hp-text-secondary)' }}>
+                        {formatCurrency(prod.pricePerUnit)}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                        {prod.creatorCount}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNumber(prod.orders)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNumber(prod.unitsSold)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
+                        {formatCurrency(prod.salesValue)}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="analytics__share-pill">
+                          <div className="analytics__share-bar-track">
                             <div
-                              className="analytics__prod-rank"
-                              style={{ background: idx < 3 ? '#ede9fe' : 'var(--hp-bg)' }}
-                            >
-                              <span style={{ color: idx < 3 ? '#6538ea' : 'var(--hp-text-tertiary)', fontWeight: 700, fontSize: '0.72rem' }}>
-                                #{idx + 1}
-                              </span>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="analytics__prod-table-product">
-                              <span className="analytics__prod-name">{prod.productName}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="analytics__table-tag">{prod.productCategory}</span>
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 500, color: 'var(--hp-text-secondary)' }}>
-                            {formatCurrency(prod.pricePerUnit)}
-                          </td>
-                          <td>
-                            <div className="analytics__creator-stack-cell">
-                              <div className="analytics__avatar-stack">
-                                {prod.creators.slice(0, 3).map((cr) => (
-                                  <div
-                                    key={cr.creatorId}
-                                    className="analytics__avatar-stack-item"
-                                    style={{ background: cr.avatarColor }}
-                                    title={`${cr.creatorName} (${cr.creatorHandle})`}
-                                  >
-                                    {cr.creatorName.charAt(0)}
-                                  </div>
-                                ))}
-                              </div>
-                              <span className="analytics__creator-stack-count">
-                                {prod.creatorCount} {prod.creatorCount === 1 ? 'creator' : 'creators'}
-                              </span>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNumber(prod.orders)}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatNumber(prod.unitsSold)}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                            {formatCurrency(prod.salesValue)}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>
-                            <div className="analytics__share-pill">
-                              <div className="analytics__share-bar-track">
-                                <div
-                                  className="analytics__share-bar-fill"
-                                  style={{ width: `${Math.min(100, prod.sharePct)}%` }}
-                                />
-                              </div>
-                              <span className="analytics__share-text">{prod.sharePct}%</span>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              className="analytics__expand-btn"
-                              title={isExpanded ? 'Collapse creator breakdown' : 'View creator breakdown'}
-                              aria-expanded={isExpanded}
-                            >
-                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </button>
-                          </td>
-                        </tr>
-
-                        {isExpanded && (
-                          <tr className="analytics__expand-detail-row">
-                            <td colSpan={10} style={{ padding: 0 }}>
-                              <div className="analytics__expand-detail-box">
-                                <div className="analytics__expand-detail-header">
-                                  <span>Contributing Creators for <strong>{prod.productName}</strong></span>
-                                  <span>
-                                    {prod.creatorCount} {prod.creatorCount === 1 ? 'creator' : 'creators'} • {formatNumber(prod.orders)} orders • {formatCurrency(prod.salesValue)}
-                                  </span>
-                                </div>
-                                <div className="analytics__creator-breakdown-grid">
-                                  {prod.creators.map((c) => (
-                                    <div key={c.creatorId} className="analytics__creator-breakdown-card">
-                                      <div className="analytics__prod-avatar" style={{ background: c.avatarColor }}>
-                                        {c.creatorName.charAt(0)}
-                                      </div>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div className="analytics__prod-creator-name">
-                                          {c.creatorName}
-                                        </div>
-                                        <div className="analytics__prod-creator-handle">
-                                          {c.creatorHandle} • {c.platform}
-                                        </div>
-                                      </div>
-                                      <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 700, color: '#059669', fontSize: '12px' }}>
-                                          {formatCurrency(c.salesValue)}
-                                        </div>
-                                        <div style={{ fontSize: '11px', color: 'var(--hp-text-tertiary)' }}>
-                                          {c.orders} orders ({c.unitsSold} units)
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
+                              className="analytics__share-bar-fill"
+                              style={{ width: `${Math.min(100, prod.sharePct)}%` }}
+                            />
+                          </div>
+                          <span className="analytics__share-text">{prod.sharePct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

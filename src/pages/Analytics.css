@@ -671,56 +671,7 @@
   color: var(--hp-text-tertiary);
 }
 
-/* Overall Product-wise Table & Avatar Stacks */
-.analytics__prod-row {
-  transition: background-color 0.15s ease;
-}
-
-.analytics__prod-row:hover {
-  background-color: #fcfbfe !important;
-}
-
-.analytics__prod-row--expanded {
-  background-color: #f7f5ff !important;
-}
-
-.analytics__creator-stack-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.analytics__avatar-stack {
-  display: flex;
-  align-items: center;
-}
-
-.analytics__avatar-stack-item {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.65rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #ffffff;
-  margin-left: -7px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.analytics__avatar-stack-item:first-child {
-  margin-left: 0;
-}
-
-.analytics__creator-stack-count {
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--hp-text-secondary);
-  white-space: nowrap;
-}
-
+/* Overall Product-wise Table */
 .analytics__share-pill {
   display: inline-flex;
   align-items: center;
@@ -750,65 +701,6 @@
   color: var(--hp-text-primary);
   min-width: 36px;
   text-align: right;
-}
-
-.analytics__expand-btn {
-  background: transparent;
-  border: 1px solid var(--hp-border, #e2e8f0);
-  border-radius: 6px;
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--hp-text-tertiary);
-  transition: all 0.15s ease;
-}
-
-.analytics__expand-btn:hover {
-  background: #ede9fe;
-  color: var(--hp-primary);
-  border-color: #c4b5fd;
-}
-
-.analytics__expand-detail-row {
-  background: #faf8ff;
-}
-
-.analytics__expand-detail-box {
-  padding: 14px 20px 18px 20px;
-  border-top: 1px dashed #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-  background: #faf9ff;
-}
-
-.analytics__expand-detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.78rem;
-  color: var(--hp-text-secondary);
-  margin-bottom: 12px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #ede9fe;
-}
-
-.analytics__creator-breakdown-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
-}
-
-.analytics__creator-breakdown-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #ffffff;
-  border: 1px solid #ede9fe;
-  border-radius: 8px;
-  padding: 8px 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 /* Platform badges */
