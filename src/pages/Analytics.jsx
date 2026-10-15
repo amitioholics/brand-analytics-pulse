@@ -260,6 +260,7 @@ export default function Analytics() {
                     <th style={{ width: 44 }}>#</th>
                     <th>Product</th>
                     <th>Category</th>
+                    <th>Campaign</th>
                     <th style={{ textAlign: 'right' }}>Total Creators</th>
                     <th style={{ textAlign: 'right' }}>Units Sold</th>
                     <th style={{ textAlign: 'right' }}>Sales Value</th>
@@ -285,6 +286,30 @@ export default function Analytics() {
                       </td>
                       <td>
                         <span className="analytics__table-tag">{prod.productCategory}</span>
+                      </td>
+                      <td>
+                        {prod.campaigns && prod.campaigns.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {prod.campaigns.map(camp => (
+                              <Link
+                                key={camp.id}
+                                to={`/campaigns/${camp.id}`}
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 500,
+                                  color: '#0f172a',
+                                  textDecoration: 'none',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--hp-primary, #6538ea)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = '#0f172a')}
+                              >
+                                {camp.name}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>—</span>
+                        )}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
                         {prod.creatorCount}

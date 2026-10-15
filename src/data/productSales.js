@@ -68,7 +68,7 @@ function withValue(record) {
   };
 }
 
-import { getCampaignsByPortal } from './campaigns.js';
+import { getCampaignsByPortal, campaigns } from './campaigns.js';
 import { getCreatorById } from './creators.js';
 
 export function getAggregatedProductSales(portalType) {
@@ -127,12 +127,14 @@ export function getProductWiseSales(portalType) {
         salesValue: 0,
         orders: 0,
         creatorBreakdown: new Map(),
+        campaignIds: new Set(),
       });
     }
     const item = map.get(r.productId);
     item.unitsSold += r.unitsSold;
     item.salesValue += r.salesValue;
     item.orders += r.orders;
+    if (r.campaignId) item.campaignIds.add(r.campaignId);
 
     if (!item.creatorBreakdown.has(r.creatorId)) {
       const cr = getCreatorById(r.creatorId);
@@ -157,6 +159,9 @@ export function getProductWiseSales(portalType) {
 
   return Array.from(map.values()).map(p => {
     const creators = Array.from(p.creatorBreakdown.values()).sort((a, b) => b.salesValue - a.salesValue);
+    const campaignsList = Array.from(p.campaignIds)
+      .map(cid => campaigns.find(c => c.id === cid))
+      .filter(Boolean);
     return {
       productId: p.productId,
       productName: p.productName,
@@ -167,6 +172,8 @@ export function getProductWiseSales(portalType) {
       salesValue: p.salesValue,
       creators,
       creatorCount: creators.length,
+      campaigns: campaignsList,
+      campaignName: campaignsList.map(c => c.name).join(', ') || '—',
       sharePct: totalSales > 0 ? Number(((p.salesValue / totalSales) * 100).toFixed(1)) : 0,
     };
   }).sort((a, b) => b.salesValue - a.salesValue);
