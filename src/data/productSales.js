@@ -108,6 +108,70 @@ export function getAggregatedProductSales(portalType) {
   }).sort((a, b) => b.salesValue - a.salesValue);
 }
 
+export function getProductWiseSales(portalType) {
+  let records = productSalesRecords.map(withValue);
+  if (portalType) {
+    const campIds = new Set(getCampaignsByPortal(portalType).map(c => c.id));
+    records = records.filter(r => campIds.has(r.campaignId));
+  }
+  const map = new Map();
+  records.forEach(r => {
+    if (!map.has(r.productId)) {
+      const prod = getProductById(r.productId);
+      map.set(r.productId, {
+        productId: r.productId,
+        productName: r.productName,
+        productCategory: r.productCategory,
+        pricePerUnit: prod ? prod.pricePerUnit : 0,
+        unitsSold: 0,
+        salesValue: 0,
+        orders: 0,
+        creatorBreakdown: new Map(),
+      });
+    }
+    const item = map.get(r.productId);
+    item.unitsSold += r.unitsSold;
+    item.salesValue += r.salesValue;
+    item.orders += r.orders;
+
+    if (!item.creatorBreakdown.has(r.creatorId)) {
+      const cr = getCreatorById(r.creatorId);
+      item.creatorBreakdown.set(r.creatorId, {
+        creatorId: r.creatorId,
+        creatorName: cr ? cr.name : 'Unknown',
+        creatorHandle: cr ? cr.socialHandle : '-',
+        platform: cr ? cr.platform : '-',
+        avatarColor: cr ? cr.avatarColor : '#6538ea',
+        unitsSold: 0,
+        orders: 0,
+        salesValue: 0,
+      });
+    }
+    const crAgg = item.creatorBreakdown.get(r.creatorId);
+    crAgg.unitsSold += r.unitsSold;
+    crAgg.orders += r.orders;
+    crAgg.salesValue += r.salesValue;
+  });
+
+  const totalSales = Array.from(map.values()).reduce((s, p) => s + p.salesValue, 0);
+
+  return Array.from(map.values()).map(p => {
+    const creators = Array.from(p.creatorBreakdown.values()).sort((a, b) => b.salesValue - a.salesValue);
+    return {
+      productId: p.productId,
+      productName: p.productName,
+      productCategory: p.productCategory,
+      pricePerUnit: p.pricePerUnit,
+      unitsSold: p.unitsSold,
+      orders: p.orders,
+      salesValue: p.salesValue,
+      creators,
+      creatorCount: creators.length,
+      sharePct: totalSales > 0 ? Number(((p.salesValue / totalSales) * 100).toFixed(1)) : 0,
+    };
+  }).sort((a, b) => b.salesValue - a.salesValue);
+}
+
 export function getProductSalesKPIs(portalType) {
   const rows = getAggregatedProductSales(portalType);
   return {
