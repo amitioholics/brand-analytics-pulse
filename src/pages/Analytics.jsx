@@ -10,7 +10,6 @@ import { getAggregatedProductSales, getProductSalesKPIs, getProductWiseSales } f
 import { formatNumber, formatCurrency, formatCompactNumber, formatDate } from '../utils/formatters';
 import KPICard from '../components/common/KPICard';
 import StatusBadge from '../components/common/StatusBadge';
-import ExportButton from '../components/common/ExportButton';
 import {
   Users, FileVideo, Eye, ShoppingCart, MousePointerClick,
   ArrowUpRight, Sparkles, Smartphone, Video, Award, Target,
@@ -169,7 +168,6 @@ export default function Analytics() {
               </button>
             ))}
           </div>
-          <ExportButton label="Export Intelligence" />
         </div>
       </div>
 
@@ -254,7 +252,6 @@ export default function Analytics() {
                   Aggregated product sales performance across all campaigns — tracking volume, creator adoption, and gross revenue per product.
                 </p>
               </div>
-              <ExportButton label="Export Sales" />
             </div>
             <div className="analytics__table-wrap">
               <table className="analytics__table">
