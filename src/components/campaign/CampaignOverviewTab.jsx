@@ -149,7 +149,7 @@ export default function CampaignOverviewTab({
             <div className="guideline-block">
               <span className="guideline-block__label">Required Hashtags:</span>
               <div className="guideline-tags">
-                {(guidelines.requiredHashtags || ['#MyntraAW26', '#MyntraRunway']).map(t => (
+                {(guidelines.requiredHashtags || ['#PGFamily', '#PGSpotlight', '#Ad']).map(t => (
                   <span key={t} className="guideline-tag">{t}</span>
                 ))}
               </div>
@@ -158,7 +158,7 @@ export default function CampaignOverviewTab({
             <div className="guideline-block">
               <span className="guideline-block__label">Handles to Tag:</span>
               <div className="guideline-tags">
-                {(guidelines.handlesToTag || ['@myntra']).map(h => (
+                {(guidelines.handlesToTag || ['@pg', '@proctergamble']).map(h => (
                   <span key={h} className="guideline-tag guideline-tag--handle">{h}</span>
                 ))}
               </div>

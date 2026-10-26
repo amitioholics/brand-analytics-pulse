@@ -8,14 +8,15 @@ export default function PulseLogo({
   size = 'md',
   showBadge = false,
   badgeText = '',
-  tagline = 'Brand Analytics',
+  tagline = 'BY HAULPACK',
   variant = 'light', // 'light' or 'dark'
   animated = true,
   showText = true,
+  showPeriod = false,
   className = '',
 }) {
-  const iconSizes = { sm: 30, md: 40, lg: 52 };
-  const dim = iconSizes[size] || 40;
+  const iconSizes = { sm: 30, md: 40, lg: 52, xl: 64 };
+  const dim = typeof size === 'number' ? size : (iconSizes[size] || 40);
   // Unique, url()-safe ids so multiple logos on a page don't share defs
   const uid = `pl${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const id = (name) => `${uid}-${name}`;
@@ -36,87 +37,44 @@ export default function PulseLogo({
         >
           <defs>
             <linearGradient id={id('tile')} x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#2d2650" />
-              <stop offset="1" stopColor="#110e24" />
+              <stop offset="0%" stopColor="#6442ef" />
+              <stop offset="100%" stopColor="#4f26d9" />
             </linearGradient>
-            <radialGradient id={id('halo')} cx="24" cy="28" r="22" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#7c3aed" stopOpacity="0.55" />
-              <stop offset="1" stopColor="#7c3aed" stopOpacity="0" />
-            </radialGradient>
-            <linearGradient id={id('bag')} x1="10" y1="12" x2="38" y2="40" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#a78bfa" />
-              <stop offset="0.5" stopColor="#7c3aed" />
-              <stop offset="1" stopColor="#ec4899" />
-            </linearGradient>
-            <linearGradient id={id('beat')} x1="5" y1="0" x2="41" y2="0" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#ffffff" stopOpacity="0.35" />
-              <stop offset="0.55" stopColor="#ffffff" />
-              <stop offset="1" stopColor="#67e8f9" />
-            </linearGradient>
-            {/* Knock the heartbeat out of the bag, like HaulPack's cut */}
-            <mask id={id('cut')} maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
-              <rect width="48" height="48" fill="#fff" />
-              <path d={BEAT} stroke="#000" strokeWidth="4.4" strokeLinecap="round" strokeLinejoin="round" />
-            </mask>
-            <filter id={id('glow')} x="-20%" y="-60%" width="140%" height="220%">
-              <feGaussianBlur stdDeviation="1.1" result="b" />
+            <filter id={id('glow')} x="-15%" y="-30%" width="130%" height="160%">
+              <feGaussianBlur stdDeviation="0.8" result="blur" />
               <feMerge>
-                <feMergeNode in="b" />
+                <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
 
-          {/* ── Tile ── */}
-          <rect width="48" height="48" rx="13" fill={`url(#${id('tile')})`} />
-          <rect width="48" height="48" rx="13" fill={`url(#${id('halo')})`} className="pulse-brand-logo__halo" />
+          {/* ── Vibrant Purple Squircle Tile ── */}
+          <rect width="48" height="48" rx="12" fill={`url(#${id('tile')})`} />
+          <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" stroke="#ffffff" strokeOpacity="0.22" strokeWidth="1.2" />
 
-          {/* ── HaulPack bag ── */}
-          <g mask={`url(#${id('cut')})`}>
-            <path
-              d="M18.5 16.5 V13.5 a5.5 5.5 0 0 1 11 0 V16.5"
-              stroke={`url(#${id('bag')})`}
-              strokeWidth="2.6"
-              strokeLinecap="round"
-            />
-            <path
-              d="M14.2 16.5 H33.8 L38.4 36.6 Q39 39.5 36.2 39.5 H11.8 Q9 39.5 9.6 36.6 Z"
-              fill={`url(#${id('bag')})`}
-              stroke={`url(#${id('bag')})`}
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-          </g>
-
-          {/* ── Heartbeat ── */}
+          {/* ── Crisp White Pulse Waveform (from reference) ── */}
           <path
-            d={BEAT}
-            stroke={`url(#${id('beat')})`}
-            strokeWidth="1.9"
+            d="M7 24 H15 L18.5 17 L22.5 32 L27.5 13 L31.5 24 H41"
+            stroke="#ffffff"
+            strokeWidth="3.2"
             strokeLinecap="round"
             strokeLinejoin="round"
             filter={`url(#${id('glow')})`}
           />
-          {/* Travelling spark along the beat */}
+
+          {/* ── Traveling Spark Animation along the waveform ── */}
           {animated && (
             <path
-              d={BEAT}
+              d="M7 24 H15 L18.5 17 L22.5 32 L27.5 13 L31.5 24 H41"
               pathLength="100"
               stroke="#ffffff"
-              strokeWidth="2.4"
+              strokeWidth="4"
               strokeLinecap="round"
               strokeLinejoin="round"
-              filter={`url(#${id('glow')})`}
               className="pulse-brand-logo__spark"
             />
           )}
-
-          {/* ── Beacon ── */}
-          <circle cx="41" cy="29" r="3.2" stroke="#67e8f9" strokeWidth="0.9" className="pulse-brand-logo__ring" />
-          <circle cx="41" cy="29" r="2" fill="#67e8f9" filter={`url(#${id('glow')})`} className="pulse-brand-logo__dot" />
-
-          {/* Border gloss */}
-          <rect x="0.6" y="0.6" width="46.8" height="46.8" rx="12.4" stroke="#ffffff" strokeOpacity="0.12" strokeWidth="1.2" />
         </svg>
       </div>
 
@@ -125,7 +83,7 @@ export default function PulseLogo({
         <div className="pulse-brand-logo__text-wrap">
           <div className="pulse-brand-logo__title-row">
             <span className="pulse-brand-logo__wordmark">
-              Pulse<span className="pulse-brand-logo__period">.</span>
+              Pulse{showPeriod && <span className="pulse-brand-logo__period">.</span>}
             </span>
             {showBadge && (
               <span className="pulse-brand-logo__badge">{badgeText}</span>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Gift, ChevronDown, Check, ArrowRightLeft } from 'lucide-react';
 import { usePortal, PORTAL_MODES } from '../../context/PortalContext';
+import PGLogo from '../common/PGLogo';
 import './PortalSwitcher.css';
 
 export default function PortalSwitcher({ onSelect }) {
@@ -34,7 +35,7 @@ export default function PortalSwitcher({ onSelect }) {
       <div className="portal-switcher__label-row">
         <span className="portal-switcher__caption">PORTAL VIEW</span>
         <span className="portal-switcher__active-tag">
-          {isBrandConnect ? 'Campaigns' : 'Rewards'}
+          {isBrandConnect ? 'COLLABS' : 'REWARDS'}
         </span>
       </div>
 
@@ -45,18 +46,18 @@ export default function PortalSwitcher({ onSelect }) {
         onClick={() => setDropdownOpen(!dropdownOpen)}
         title="Switch between Brand Connect and Reward Program"
       >
-        <div className="portal-switcher__trigger-icon">
+        <div className="portal-switcher__trigger-icon" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px', overflow: 'hidden' }}>
           {isBrandConnect ? (
-            <Sparkles size={16} className="portal-switcher__icon-brand" />
+            <PGLogo size={20} />
           ) : (
             <Gift size={16} className="portal-switcher__icon-reward" />
           )}
         </div>
 
         <div className="portal-switcher__trigger-info">
-          <span className="portal-switcher__trigger-title">{currentConfig.name}</span>
+          <span className="portal-switcher__trigger-title">{isBrandConnect ? 'Procter & Gamble' : currentConfig.name}</span>
           <span className="portal-switcher__trigger-sub">
-            {isBrandConnect ? 'Influencer Campaigns' : 'Affiliate Rewards'}
+            {isBrandConnect ? 'Pulse • Influencer Collabs' : 'Affiliate Rewards'}
           </span>
         </div>
 
@@ -81,16 +82,16 @@ export default function PortalSwitcher({ onSelect }) {
               className={`portal-switcher__option ${isBrandConnect ? 'portal-switcher__option--selected' : ''}`}
               onClick={() => handleSelect(PORTAL_MODES.BRAND_CONNECT)}
             >
-              <div className="portal-switcher__opt-icon portal-switcher__opt-icon--brand">
-                <Sparkles size={16} />
+              <div className="portal-switcher__opt-icon portal-switcher__opt-icon--brand" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <PGLogo size={20} />
               </div>
               <div className="portal-switcher__opt-content">
                 <div className="portal-switcher__opt-title-row">
-                  <span className="portal-switcher__opt-name">Brand Connect</span>
-                  <span className="portal-switcher__opt-pill portal-switcher__opt-pill--brand">Campaigns</span>
+                  <span className="portal-switcher__opt-name">Procter & Gamble</span>
+                  <span className="portal-switcher__opt-pill portal-switcher__opt-pill--brand">Collabs</span>
                 </div>
                 <p className="portal-switcher__opt-desc">
-                  Direct creator partnerships, sponsored deliverables, and brand activations.
+                  Pulse • Direct creator partnerships, sponsored deliverables, and brand activations.
                 </p>
               </div>
               {isBrandConnect && (

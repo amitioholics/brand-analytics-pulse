@@ -1,52 +1,35 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  X, CheckCircle, XCircle, AlertCircle, Play, Pause, Volume2,
-  VolumeX, Tag, Calendar, User, ExternalLink, MessageSquare,
-  Sparkles, ShieldAlert, Check, CheckCircle2, Camera, Video,
-  Award, Clock, ArrowRight, RotateCcw
+  X, Sparkles, Clock, Camera, ExternalLink, Play, RotateCcw,
+  CheckCircle2, XCircle, Check
 } from 'lucide-react';
-import { DRAFT_REJECTION_REASONS, LIVE_POST_REJECTION_REASONS } from '../../data/videoSubmissions';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, formatDateTime, formatCurrency, formatCompactNumber } from '../../utils/formatters';
+import { useDeliverables } from '../../context/DeliverablesContext';
 import './VideoReviewModal.css';
-
-function PlatformIcon({ platform, size = 15 }) {
-  if (platform === 'YouTube') {
-    return <Video size={size} color="#ef4444" />;
-  }
-  return <Camera size={size} color="#e1306c" />;
-}
 
 export default function VideoReviewModal({
   submission,
   onClose,
-  onApproveDraft,
-  onRejectDraft,
-  onApproveLivePost,
-  onRejectLivePost,
-  onApproveFinalPayment,
-  onRejectFinalPayment,
-  onApprove,
-  onReject,
-  initialRejectMode = false,
+  onApproveDraft: propApproveDraft,
+  onRejectDraft: propRejectDraft,
+  onApproveLivePost: propApproveLivePost,
+  onRejectLivePost: propRejectLivePost,
+  initialRejectMode = false
 }) {
+  const navigate = useNavigate();
+  const {
+    submissions,
+    approveDraft,
+    rejectDraft,
+    approveLivePost,
+    rejectLivePost,
+    resetDraftReview
+  } = useDeliverables();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [activeSideTab, setActiveSideTab] = useState('decision'); // 'decision' | 'brief_checklist'
-  const [showRejectForm, setShowRejectForm] = useState(initialRejectMode || false);
-  const [selectedReasonId, setSelectedReasonId] = useState('');
-  const [customReasonText, setCustomReasonText] = useState('');
-  const [reviewNote, setReviewNote] = useState('');
-  const [showSuccessBanner, setShowSuccessBanner] = useState(null);
-
-  const videoRef = useRef(null);
-
-  const handleSpeedChange = (speed) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-      setPlaybackSpeed(speed);
-    }
-  };
+  const [showRejectForm, setShowRejectForm] = useState(initialRejectMode);
+  const [rejectReason, setRejectReason] = useState('Missing Mandatory Disclosures (#Ad / #Collab)');
+  const [rejectNotes, setRejectNotes] = useState('');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -58,134 +41,104 @@ export default function VideoReviewModal({
 
   if (!submission) return null;
 
-  const isStageFinal = submission.stage === 'final_review' || submission.stage === 'live_rejected';
-  const isAwaitingLiveLink = submission.stage === 'awaiting_live_link';
-  const isLiveApproved = submission.stage === 'live_approved' || submission.stage === 'payment_approved';
-  const isDraftStage = submission.stage === 'draft_review' || submission.stage === 'draft_rejected' || !submission.stage;
-  const isDraftRejected = submission.stage === 'draft_rejected';
-  const isLiveRejected = submission.stage === 'live_rejected';
+  // Resolve current submission state from context
+  const currentSubmission = (submissions && submissions.find(s => s.id === submission.id)) || submission;
 
-  const activeRejectionReasons = isStageFinal ? LIVE_POST_REJECTION_REASONS : DRAFT_REJECTION_REASONS;
+  const isStage2 = currentSubmission.stage === 'final_review' ||
+    currentSubmission.stage === 'live_approved' ||
+    currentSubmission.stage === 'payment_approved' ||
+    currentSubmission.stage === 'live_rejected';
 
-  const handlePlayToggle = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
+  const isStage1Approved = currentSubmission.stage !== 'draft_review' && currentSubmission.stage !== 'draft_rejected';
+
+  const isAwaitingLiveLink = currentSubmission.stage === 'awaiting_live_link';
+
+  const isApproved = isStage2
+    ? (currentSubmission.stage === 'live_approved' || currentSubmission.stage === 'payment_approved' || currentSubmission.liveStatus === 'Approved')
+    : (currentSubmission.stage === 'awaiting_live_link' || currentSubmission.draftStatus === 'Approved');
+
+  const isLiveApproved = isStage2 && (currentSubmission.stage === 'live_approved' || currentSubmission.stage === 'payment_approved' || currentSubmission.liveStatus === 'Approved');
+
+  const isRejected = isStage2
+    ? (currentSubmission.stage === 'live_rejected' || currentSubmission.liveStatus === 'Rejected')
+    : (currentSubmission.stage === 'draft_rejected' || currentSubmission.draftStatus === 'Rejected');
+
+  const handleApprove = () => {
+    if (isStage2) {
+      if (propApproveLivePost) {
+        propApproveLivePost(currentSubmission.id, 'Live post verified by Brand Team.');
+      } else if (approveLivePost) {
+        approveLivePost(currentSubmission.id, 'Live post verified by Brand Team.');
+      }
     } else {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      if (propApproveDraft) {
+        propApproveDraft(currentSubmission.id, 'Content approved by Brand Team.');
+      } else if (approveDraft) {
+        approveDraft(currentSubmission.id, 'Content approved by Brand Team.');
+      }
     }
   };
 
-  const handleMuteToggle = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
+  const handleConfirmReject = () => {
+    const reasonText = rejectReason || 'Revision requested from creator.';
+    if (isStage2) {
+      if (propRejectLivePost) {
+        propRejectLivePost(currentSubmission.id, reasonText, rejectNotes);
+      } else if (rejectLivePost) {
+        rejectLivePost(currentSubmission.id, reasonText, rejectNotes);
+      }
+    } else {
+      if (propRejectDraft) {
+        propRejectDraft(currentSubmission.id, reasonText, rejectNotes);
+      } else if (rejectDraft) {
+        rejectDraft(currentSubmission.id, reasonText, rejectNotes);
+      }
+    }
+    setShowRejectForm(false);
   };
 
-  // Stage 1: Admin Approves Draft Video
-  const handleApproveDraftAction = () => {
-    if (onApproveDraft) {
-      onApproveDraft(submission.id, reviewNote);
-    } else if (onApprove) {
-      onApprove(submission.id, reviewNote);
+  const handleUndo = () => {
+    if (resetDraftReview) {
+      resetDraftReview(currentSubmission.id);
     }
-    setShowSuccessBanner('draft_approved');
-    setTimeout(() => {
-      onClose();
-    }, 1100);
   };
 
-  // Stage 1: Admin Rejects Draft Video with Reason
-  const handleRejectDraftAction = () => {
-    const selectedObj = activeRejectionReasons.find(r => r.id === selectedReasonId);
-    let finalReason = selectedObj ? selectedObj.label : '';
-    if (selectedReasonId.startsWith('custom') || !finalReason) {
-      finalReason = customReasonText;
-    } else if (customReasonText) {
-      finalReason = `${finalReason}: ${customReasonText}`;
-    }
-    if (!finalReason.trim()) return;
+  const initials = currentSubmission.creatorName
+    ? currentSubmission.creatorName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'CR';
 
-    if (onRejectDraft) {
-      onRejectDraft(submission.id, finalReason, customReasonText);
-    } else if (onReject) {
-      onReject(submission.id, finalReason, customReasonText);
-    }
-    setShowSuccessBanner('draft_rejected');
-    setTimeout(() => {
-      onClose();
-    }, 1100);
-  };
+  const campaignTitle = (currentSubmission.campaignName || 'HAULPACK X AMAZON HEAD & SHOULDERS').toUpperCase();
+  const displayUrl = isStage2
+    ? (currentSubmission.livePostUrl || currentSubmission.socialMediaUrl || currentSubmission.videoUrl)
+    : (currentSubmission.videoUrl || `https://storage.googleapis.com/haulpack-demo-media/creators/${currentSubmission.id}_raw.mp4`);
 
-  // Stage 2: Admin Approves Live Post
-  const handleApproveLivePostAction = () => {
-    if (onApproveLivePost) {
-      onApproveLivePost(submission.id, reviewNote);
-    } else if (onApproveFinalPayment) {
-      onApproveFinalPayment(submission.id, reviewNote);
-    } else if (onApprove) {
-      onApprove(submission.id, reviewNote);
-    }
-    setShowSuccessBanner('live_approved');
-    setTimeout(() => {
-      onClose();
-    }, 1100);
-  };
+  const views = currentSubmission.socialMetrics?.views ?? currentSubmission.views ?? (currentSubmission.followerCount ? Math.round(currentSubmission.followerCount * 5.29) : 101900);
+  const er = currentSubmission.socialMetrics?.er ?? currentSubmission.er ?? '10.1%';
+  const sales = currentSubmission.socialMetrics?.sales ?? currentSubmission.sales ?? 0;
 
-  // Stage 2: Admin Rejects Live Post with Reason
-  const handleRejectLivePostAction = () => {
-    const selectedObj = activeRejectionReasons.find(r => r.id === selectedReasonId);
-    let finalReason = selectedObj ? selectedObj.label : '';
-    if (selectedReasonId.startsWith('custom') || !finalReason) {
-      finalReason = customReasonText;
-    } else if (customReasonText) {
-      finalReason = `${finalReason}: ${customReasonText}`;
-    }
-    if (!finalReason.trim()) return;
+  // Stage Timeline Timestamps & Status Text
+  const step1Time = currentSubmission.draftReviewedAt || (isStage1Approved ? currentSubmission.submittedAt : null);
+  const step1TimeText = isStage1Approved
+    ? formatDateTime(step1Time)
+    : (currentSubmission.stage === 'draft_rejected'
+        ? (currentSubmission.draftReviewedAt ? `Rejected ${formatDateTime(currentSubmission.draftReviewedAt)}` : 'Draft Rejected')
+        : (currentSubmission.submittedAt ? `Submitted ${formatDateTime(currentSubmission.submittedAt)}` : 'Pending Review'));
 
-    if (onRejectLivePost) {
-      onRejectLivePost(submission.id, finalReason, customReasonText);
-    } else if (onRejectFinalPayment) {
-      onRejectFinalPayment(submission.id, finalReason, customReasonText);
-    } else if (onReject) {
-      onReject(submission.id, finalReason, customReasonText);
-    }
-    setShowSuccessBanner('live_rejected');
-    setTimeout(() => {
-      onClose();
-    }, 1100);
-  };
+  const step2Time = currentSubmission.livePostSubmittedAt || (isStage2 ? currentSubmission.submittedAt : null);
+  const step2TimeText = isStage2
+    ? formatDateTime(step2Time)
+    : (isStage1Approved
+        ? 'Awaiting Live Post'
+        : 'Pending Stage 1');
 
-  const isRejectDisabled = !selectedReasonId || (selectedReasonId.startsWith('custom') && !customReasonText.trim());
-
-  // Stepper calculations (Strictly QA & Approval: No "Upload" steps)
-  const isDraftApproved = submission.draftStatus === 'Approved' || isAwaitingLiveLink || isStageFinal || isLiveApproved;
-  const isLiveSubmitted = !!submission.livePostUrl || isStageFinal || isLiveApproved;
-
-  const step1Status = isDraftRejected
-    ? 'review-step--rejected'
-    : isDraftApproved
-    ? 'review-step--done'
-    : 'review-step--active';
-
-  const step1Done = isDraftApproved && !isDraftRejected;
-
-  const step2Status = isLiveSubmitted
-    ? 'review-step--done'
-    : isAwaitingLiveLink
-    ? 'review-step--active'
-    : 'review-step--upcoming';
-
-  const step2Done = isLiveSubmitted;
-
-  const step3Status = isLiveApproved
-    ? 'review-step--done'
-    : isLiveRejected
-    ? 'review-step--rejected'
-    : isStageFinal
-    ? 'review-step--active'
-    : 'review-step--upcoming';
+  const step3Time = currentSubmission.liveReviewedAt;
+  const step3TimeText = isLiveApproved
+    ? formatDateTime(step3Time || step2Time)
+    : (currentSubmission.stage === 'live_rejected'
+        ? (currentSubmission.liveReviewedAt ? `Rejected ${formatDateTime(currentSubmission.liveReviewedAt)}` : 'Live Rejected')
+        : (currentSubmission.stage === 'final_review'
+            ? 'Pending QA Review'
+            : 'Pending'));
 
   return (
     <div className="video-modal-overlay" onClick={onClose}>
@@ -193,624 +146,424 @@ export default function VideoReviewModal({
         {/* Header */}
         <div className="video-modal__header">
           <div className="video-modal__header-info">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="video-modal__campaign-tag">
-                <Sparkles size={13} />
-                {submission.campaignName}
-              </span>
-              <span className="video-modal__sla-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
-                <Clock size={12} />
-                <span>18h left in SLA</span>
-              </span>
-            </div>
-            <h2 className="video-modal__title">{submission.videoTitle}</h2>
+            <span className="video-modal__campaign-tag">
+              <Sparkles size={13} color="#6538ea" />
+              <span>{campaignTitle}</span>
+            </span>
+            <h2 className="video-modal__title">{currentSubmission.deliverableType || 'Instagram Reel'}</h2>
           </div>
           <button className="video-modal__close-btn" onClick={onClose} title="Close Studio">
             <X size={20} />
           </button>
         </div>
 
-        {/* 3-Step Approval Pipeline Stepper */}
+        {/* 3-Step Approval Pipeline Stepper with Stage Timelines */}
         <div className="review-stepper">
-          {/* Step 1: Draft QA */}
-          <div className={`review-step ${step1Status}`}>
-            <div className="review-step__circle">
-              {step1Status === 'review-step--done' ? (
-                <Check size={13} strokeWidth={3} />
-              ) : step1Status === 'review-step--rejected' ? (
-                <X size={13} strokeWidth={3} />
-              ) : (
-                '1'
-              )}
+          {/* Step 1: Raw Video QA */}
+          <div className={`review-step ${isStage1Approved ? 'review-step--completed' : (currentSubmission.stage === 'draft_rejected' ? 'review-step--rejected' : 'review-step--active')}`}>
+            <div className={`review-step__circle ${
+              isStage1Approved
+                ? 'review-step__circle--green'
+                : (currentSubmission.stage === 'draft_rejected'
+                    ? 'review-step__circle--red'
+                    : 'review-step__circle--purple')
+            }`}>
+              {isStage1Approved ? <Check size={14} strokeWidth={2.5} /> : (currentSubmission.stage === 'draft_rejected' ? <X size={14} strokeWidth={2.5} /> : '1')}
             </div>
             <div className="review-step__text">
-              <span className="review-step__number">Stage 1</span>
-              <span className="review-step__title">
-                {step1Status === 'review-step--done'
-                  ? 'Draft QA Approved'
-                  : step1Status === 'review-step--rejected'
-                  ? 'Draft Revision'
-                  : 'Draft Video QA'}
+              <span className="review-step__number">STAGE 1</span>
+              <span className={`review-step__title ${
+                isStage1Approved
+                  ? 'review-step__title--dark'
+                  : (currentSubmission.stage === 'draft_rejected'
+                      ? 'review-step__title--red'
+                      : 'review-step__title--purple')
+              }`}>
+                {isStage1Approved
+                  ? 'Raw Video Approved'
+                  : (currentSubmission.stage === 'draft_rejected' ? 'Draft Rejected' : 'Raw Video QA')}
+              </span>
+              <span className="review-step__time">
+                {step1TimeText}
               </span>
             </div>
           </div>
 
-          <div className={`review-stepper__line ${step1Done ? 'review-stepper__line--done' : ''}`} />
+          <div className={`review-stepper__line ${isStage2 ? 'review-stepper__line--green' : ''}`} />
 
           {/* Step 2: Creator Live Post */}
-          <div className={`review-step ${step2Status}`}>
-            <div className="review-step__circle">
-              {step2Status === 'review-step--done' ? (
-                <Check size={13} strokeWidth={3} />
-              ) : (
-                '2'
-              )}
+          <div className={`review-step ${isStage2 ? 'review-step--completed' : (isStage1Approved ? 'review-step--active' : 'review-step--upcoming')}`}>
+            <div className={`review-step__circle ${isStage2 ? 'review-step__circle--green' : (isStage1Approved ? 'review-step__circle--purple' : '')}`}>
+              {isStage2 ? <Check size={14} strokeWidth={2.5} /> : '2'}
             </div>
             <div className="review-step__text">
-              <span className="review-step__number">Creator</span>
-              <span className="review-step__title">
-                {step2Status === 'review-step--done'
-                  ? 'Live Post Published'
-                  : step2Status === 'review-step--active'
-                  ? 'Publishing Live...'
-                  : 'Creator Live Post'}
+              <span className="review-step__number">CREATOR</span>
+              <span className={`review-step__title ${isStage2 ? 'review-step__title--dark' : (isStage1Approved ? 'review-step__title--purple' : '')}`}>
+                {isStage2 ? 'Live Post Published' : 'Creator Live Post'}
+              </span>
+              <span className="review-step__time">
+                {step2TimeText}
               </span>
             </div>
           </div>
 
-          <div className={`review-stepper__line ${step2Done ? 'review-stepper__line--done' : ''}`} />
+          <div className={`review-stepper__line ${isLiveApproved ? 'review-stepper__line--green' : ''}`} />
 
           {/* Step 3: Live Post QA */}
-          <div className={`review-step ${step3Status}`}>
-            <div className="review-step__circle">
-              {step3Status === 'review-step--done' ? (
-                <Check size={13} strokeWidth={3} />
-              ) : step3Status === 'review-step--rejected' ? (
-                <X size={13} strokeWidth={3} />
-              ) : (
-                '3'
-              )}
+          <div className={`review-step ${
+            isLiveApproved
+              ? 'review-step--completed'
+              : (currentSubmission.stage === 'live_rejected'
+                  ? 'review-step--rejected'
+                  : (currentSubmission.stage === 'final_review' ? 'review-step--active' : 'review-step--upcoming'))
+          }`}>
+            <div className={`review-step__circle ${
+              isLiveApproved
+                ? 'review-step__circle--green'
+                : (currentSubmission.stage === 'live_rejected'
+                    ? 'review-step__circle--red'
+                    : (currentSubmission.stage === 'final_review' ? 'review-step__circle--purple' : ''))
+            }`}>
+              {isLiveApproved ? <Check size={14} strokeWidth={2.5} /> : (currentSubmission.stage === 'live_rejected' ? <X size={14} strokeWidth={2.5} /> : '3')}
             </div>
             <div className="review-step__text">
-              <span className="review-step__number">Stage 2</span>
-              <span className="review-step__title">
-                {step3Status === 'review-step--done'
-                  ? 'Live QA Approved'
-                  : step3Status === 'review-step--rejected'
-                  ? 'Live Revision'
-                  : 'Live Post QA'}
+              <span className="review-step__number">STAGE 2</span>
+              <span className={`review-step__title ${
+                isLiveApproved
+                  ? 'review-step__title--dark'
+                  : (currentSubmission.stage === 'live_rejected'
+                      ? 'review-step__title--red'
+                      : (currentSubmission.stage === 'final_review' ? 'review-step__title--purple' : ''))
+              }`}>
+                {isLiveApproved
+                  ? 'Live Post Approved'
+                  : (currentSubmission.stage === 'live_rejected' ? 'Live Post Rejected' : 'Live Post QA')}
+              </span>
+              <span className="review-step__time">
+                {step3TimeText}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Temporary Success Banners */}
-        {showSuccessBanner === 'draft_approved' && (
-          <div className="video-modal__status-banner video-modal__status-banner--success">
-            <CheckCircle size={20} />
-            <div>
-              <strong>Content Draft Approved!</strong>
-              <span>Creator has been notified to publish the post live on {submission.creatorPlatform || 'Instagram'}.</span>
-            </div>
-          </div>
-        )}
-        {showSuccessBanner === 'draft_rejected' && (
-          <div className="video-modal__status-banner video-modal__status-banner--danger">
-            <XCircle size={20} />
-            <div>
-              <strong>Draft Rejected with Feedback</strong>
-              <span>Revision guidance has been sent to the creator.</span>
-            </div>
-          </div>
-        )}
-        {showSuccessBanner === 'live_approved' && (
-          <div className="video-modal__status-banner video-modal__status-banner--success">
-            <CheckCircle2 size={20} />
-            <div>
-              <strong>Live Post Approved!</strong>
-              <span>The live post compliance has been verified and successfully approved.</span>
-            </div>
-          </div>
-        )}
-        {showSuccessBanner === 'live_rejected' && (
-          <div className="video-modal__status-banner video-modal__status-banner--danger">
-            <ShieldAlert size={20} />
-            <div>
-              <strong>Live Post Rejected with Reason</strong>
-              <span>Creator requested to update live post caption/disclosures.</span>
-            </div>
-          </div>
-        )}
-
-        {/* Modal Body */}
+        {/* Modal Body: 2 Columns */}
         <div className="video-modal__body">
-          {/* Left Column: Video Draft Player */}
-          <div className="video-modal__player-section">
-            <div className="video-modal__player-wrapper">
-              <video
-                ref={videoRef}
-                src={submission.videoUrl}
-                className="video-modal__video"
-                loop
-                playsInline
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-              />
-
-              {!isPlaying && (
+          {/* Left Column: Dark Preview Box */}
+          <div className="video-modal__dark-preview">
+            {isPlaying && currentSubmission.previewVideoUrl ? (
+              <div className="video-modal__player-box">
+                <video
+                  src={currentSubmission.previewVideoUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="video-modal__video-element"
+                />
                 <button
                   type="button"
-                  className="video-modal__player-center-play"
-                  onClick={handlePlayToggle}
-                  aria-label="Play video"
+                  className="video-modal__player-toggle-btn"
+                  onClick={() => setIsPlaying(false)}
                 >
-                  <Play size={26} fill="#ffffff" color="#ffffff" style={{ marginLeft: '3px' }} />
+                  <RotateCcw size={12} />
+                  <span>Show Link View</span>
                 </button>
-              )}
-
-              <div className="video-modal__player-controls">
-                <button
-                  type="button"
-                  className="video-modal__control-btn"
-                  onClick={handlePlayToggle}
-                  title={isPlaying ? 'Pause' : 'Play'}
+              </div>
+            ) : (
+              <div className="video-modal__dark-center">
+                <div
+                  className="video-modal__camera-icon-wrapper"
+                  onClick={() => currentSubmission.previewVideoUrl && setIsPlaying(true)}
+                  style={{ cursor: currentSubmission.previewVideoUrl ? 'pointer' : 'default' }}
+                  title={currentSubmission.previewVideoUrl ? 'Click to play demo video' : ''}
                 >
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} fill="currentColor" />}
-                </button>
-                <button
-                  type="button"
-                  className="video-modal__control-btn"
-                  onClick={handleMuteToggle}
-                  title={isMuted ? 'Unmute' : 'Mute'}
+                  <Camera size={26} color="#f43f5e" strokeWidth={1.8} />
+                </div>
+                <h3 className="video-modal__dark-heading">
+                  {isStage2 ? 'Open Live Post Link' : 'Open Video Link'}
+                </h3>
+                <a
+                  href={displayUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="video-modal__dark-url-link"
                 >
-                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                </button>
-                <span className="video-modal__player-time">{submission.duration}</span>
-                <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: '1px 3px', gap: 2 }}>
-                  {[1, 1.5, 2].map(spd => (
-                    <button
-                      key={spd}
-                      type="button"
-                      onClick={() => handleSpeedChange(spd)}
-                      style={{
-                        background: playbackSpeed === spd ? 'var(--hp-primary, #655bef)' : 'transparent',
-                        border: 'none',
-                        color: '#fff',
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '2px 5px',
-                        borderRadius: 3,
-                        cursor: 'pointer',
-                      }}
-                      title={`Play at ${spd}x speed`}
-                    >
-                      {spd}x
-                    </button>
-                  ))}
-                </div>
-                <span className="video-modal__player-pill">{submission.deliverableType}</span>
-              </div>
-            </div>
+                  <span>{displayUrl}</span>
+                  <ExternalLink size={11} />
+                </a>
 
-            {/* Video Meta Highlight Tags */}
-            <div className="video-modal__video-tags">
-              <div className="video-tag">
-                <PlatformIcon platform={submission.creatorPlatform} size={13} />
-                <span>{submission.creatorPlatform}</span>
-              </div>
-              <div className="video-tag">
-                <Calendar size={13} />
-                <span>Submitted {formatDate(submission.submittedAt)}</span>
-              </div>
-              <div className="video-tag video-tag--highlight">
-                <Award size={13} />
-                <span>{submission.deliverableType}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Review Details & Dynamic Stage Actions */}
-          <div className="video-modal__info-section">
-            {/* Creator Row */}
-            <div className="video-modal__creator-card">
-              <div
-                className="video-modal__creator-avatar"
-                style={{ background: submission.creatorAvatarColor || 'var(--hp-primary)' }}
-              >
-                {submission.creatorName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-              </div>
-              <div className="video-modal__creator-info">
-                <div className="video-modal__creator-name-row">
-                  <h4 className="video-modal__creator-name">{submission.creatorName}</h4>
-                  <span className="video-modal__creator-badge">
-                    <PlatformIcon platform={submission.creatorPlatform} size={12} />
-                    <span>{submission.creatorHandle}</span>
-                  </span>
-                </div>
-                <div className="video-modal__creator-sub">
-                  <span>{(submission.followerCount || 100000).toLocaleString()} followers</span>
-                  <span className="video-modal__dot-sep">•</span>
-                  <span>{submission.deliverableType}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ==============================================================
-                STAGE STATUS CALLOUT BOXES (Tailored per stage)
-               ============================================================== */}
-
-            {/* State 1: Draft Pending Review */}
-            {submission.stage === 'draft_review' && (
-              <div className="status-stage-callout status-stage-callout--draft-review">
-                <div className="status-stage-callout__badge">
-                  <Clock size={13} />
-                  <span>Stage 1: Content Draft QA Pending</span>
-                </div>
-                <h4>Review Creator Video Draft</h4>
-                <p>
-                  Watch the draft video, inspect brand logo placement, audio, and caption copy below. Once satisfied, click <strong>Approve Draft</strong> to notify creator to publish live, or <strong>Reject Draft</strong> with feedback.
-                </p>
-              </div>
-            )}
-
-            {/* State 2: Draft Rejected */}
-            {isDraftRejected && (
-              <div className="status-stage-callout status-stage-callout--rejected">
-                <div className="status-stage-callout__badge">
-                  <AlertCircle size={13} />
-                  <span>Draft Revision Requested</span>
-                </div>
-                <h4>Feedback Sent to Creator</h4>
-                <div className="status-stage-callout__detail-item">
-                  <strong>Rejection Reason:</strong>
-                  <span>{submission.draftRejectionReason}</span>
-                </div>
-                {submission.draftReviewNotes && (
-                  <div className="status-stage-callout__detail-item">
-                    <strong>Admin Guidance:</strong>
-                    <span>{submission.draftReviewNotes}</span>
-                  </div>
-                )}
-                <div className="status-stage-callout__re-action-row">
+                {currentSubmission.previewVideoUrl && (
                   <button
                     type="button"
-                    className="status-stage-callout__re-btn"
-                    onClick={handleApproveDraftAction}
+                    className="video-modal__play-preview-pill"
+                    onClick={() => setIsPlaying(true)}
                   >
-                    <Check size={13} />
-                    <span>Re-Approve Draft Instead</span>
+                    <Play size={12} fill="currentColor" />
+                    <span>Watch Preview Clip</span>
                   </button>
-                </div>
+                )}
               </div>
             )}
 
-            {/* State 3: Awaiting Live Link (Draft Approved, creator needs to publish) */}
-            {isAwaitingLiveLink && (
-              <div className="status-stage-callout status-stage-callout--awaiting">
-                <div className="status-stage-callout__badge">
-                  <CheckCircle2 size={13} />
-                  <span>Stage 1 Draft Approved</span>
+            {/* Bottom Meta Row inside dark box matching Screenshot */}
+            <div className="video-modal__dark-footer">
+              <a
+                href={displayUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="video-modal__dark-bar-link"
+              >
+                <div className="video-modal__dark-bar-left">
+                  <Camera size={13} color="#f43f5e" />
+                  <span>{currentSubmission.deliverableType || 'Instagram Reel'}</span>
                 </div>
-                <h4>Waiting for Creator to Post & Share Live Link</h4>
-                <p>
-                  Content draft was approved on {formatDate(submission.draftReviewedAt || submission.submittedAt)}. The creator has been notified to publish the post live on {submission.creatorPlatform || 'Instagram'} with campaign hashtags.
-                </p>
-                <div className="status-stage-callout__sub-card">
-                  <Clock size={16} />
-                  <div>
-                    <strong>Next QA Milestone:</strong> The creator will submit their live post link directly from the creator app. Once submitted, it will appear here for <strong>Stage 2: Live Post QA</strong> to verify compliance and approve.
+                <div className="video-modal__dark-bar-right">
+                  <span>Open Link</span>
+                  <ExternalLink size={10} />
+                </div>
+              </a>
+
+              <div className="video-modal__dark-bubble">
+                <Camera size={11} color="#f43f5e" />
+                <span>{currentSubmission.creatorPlatform || 'Instagram'}</span>
+              </div>
+
+              <div className="video-modal__dark-bubble video-modal__dark-bubble--muted">
+                <span>Submitted {formatDate(isStage2 ? (currentSubmission.livePostSubmittedAt || currentSubmission.submittedAt) : currentSubmission.submittedAt)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Creator Info, Social Metrics & Brand Action Options */}
+          <div className="video-modal__right-col">
+            <div className="video-modal__right-top">
+              {/* Creator Row Card matching Screenshot */}
+              <div
+                className="video-modal__creator-row-card video-modal__creator-row-card--clickable"
+                onClick={() => {
+                  if (currentSubmission.creatorId) {
+                    if (onClose) onClose();
+                    navigate(`/creators/${currentSubmission.creatorId}`);
+                  }
+                }}
+                title={`View ${currentSubmission.creatorName}'s profile`}
+                style={{ cursor: 'pointer' }}
+              >
+                <div
+                  className="video-modal__creator-avatar-circle"
+                  style={{ background: currentSubmission.creatorAvatarColor || '#6366f1' }}
+                >
+                  {initials}
+                </div>
+                <div className="video-modal__creator-meta">
+                  <div className="video-modal__creator-name-line">
+                    <span className="video-modal__creator-name-text">{currentSubmission.creatorName}</span>
+                    <span className="video-modal__handle-pill">
+                      <Camera size={11} color="#6d28d9" />
+                      <span>{currentSubmission.creatorHandle || '@onestop_classic'}</span>
+                    </span>
                   </div>
+                  <span className="video-modal__creator-sub-text">
+                    {Number(currentSubmission.followerCount || 19260).toLocaleString()} followers • {currentSubmission.deliverableType || 'Instagram Reel'}
+                  </span>
                 </div>
               </div>
-            )}
 
-            {/* State 4: Live Post Pending Review (Stage 2) */}
-            {submission.stage === 'final_review' && (
-              <div className="status-stage-callout status-stage-callout--live-review">
-                <div className="status-stage-callout__badge">
-                  <Sparkles size={13} />
-                  <span>Stage 2: Live Post QA Pending</span>
-                </div>
-                <h4>Verify Published Live Post</h4>
-                <p>
-                  The creator has published the video live on {submission.livePlatform || 'Instagram'} and shared the public link below. Verify compliance and approve or reject the live post.
-                </p>
-
-                {/* Clickable Live Link Card */}
-                <div className="live-link-card">
-                  <div className="live-link-card__icon">
-                    <PlatformIcon platform={submission.livePlatform} size={22} />
+              {/* Live Post QA Approved Card (Screenshot Match) */}
+              {isLiveApproved ? (
+                <div className="video-modal__live-approved-card">
+                  <div className="video-modal__qa-approved-badge">
+                    <CheckCircle2 size={13} color="#15803d" />
+                    <span>LIVE POST QA APPROVED</span>
                   </div>
-                  <div className="live-link-card__info">
-                    <div className="live-link-card__label">Published Live Post URL</div>
-                    <a
-                      href={submission.livePostUrl || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="live-link-card__url"
-                      title="Open Live Post in New Tab"
-                    >
-                      <span>{submission.livePostUrl || 'https://instagram.com/reel/sample'}</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  </div>
+                  <h3 className="video-modal__qa-approved-heading">Live Post Verified & Approved</h3>
                   <a
-                    href={submission.livePostUrl || '#'}
+                    href={displayUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="live-link-card__action-btn"
+                    className="video-modal__btn-view-live-post"
                   >
-                    Open Post ↗
+                    <span>View Approved Live Post</span>
+                    <ExternalLink size={13} />
                   </a>
                 </div>
+              ) : isStage2 && currentSubmission.stage === 'final_review' ? (
+                <div className="video-modal__status-box">
+                  <span className="video-modal__status-tag">
+                    <Clock size={13} />
+                    <span>STAGE 2: BRAND LIVE POST VERIFICATION</span>
+                  </span>
+                  <h4 className="video-modal__status-title">Verify Creator Live Post</h4>
+                  <p className="video-modal__status-desc">
+                    Creator has published live on social media. Verify video content, required hashtags (#PGFamily #Ad), and link before giving final approval.
+                  </p>
+                </div>
+              ) : isApproved ? (
+                <div className="video-modal__status-box video-modal__status-box--approved">
+                  <span className="video-modal__status-tag video-modal__status-tag--green">
+                    <CheckCircle2 size={13} />
+                    <span>STAGE 1: DRAFT APPROVED</span>
+                  </span>
+                  <h4 className="video-modal__status-title">Draft Approved — Awaiting Live Post</h4>
+                  <p className="video-modal__status-desc">
+                    Creative draft was approved. Creator is notified to publish live post on social media within SLA.
+                  </p>
+                </div>
+              ) : (
+                <div className="video-modal__status-box">
+                  <span className="video-modal__status-tag">
+                    <Clock size={13} />
+                    <span>STAGE 1: BRAND CONTENT REVIEW</span>
+                  </span>
+                  <h4 className="video-modal__status-title">Review Creator Raw Video</h4>
+                  <p className="video-modal__status-desc">
+                    Admin pre-screening verified. Review creator raw video above and choose to approve for live publishing or reject with feedback.
+                  </p>
+                </div>
+              )}
 
-                {/* Live Post Compliance Checklist */}
-                <div className="live-compliance-checklist">
-                  <span className="live-compliance-checklist__title">Verification Checklist:</span>
-                  <div className="checklist-items">
-                    <div className="checklist-item">
-                      <CheckCircle2 size={13} color="#10b981" />
-                      <span>Draft video approved on schedule</span>
-                    </div>
-                    <div className="checklist-item">
-                      <CheckCircle2 size={13} color="#10b981" />
-                      <span>Affiliate discount code present in live caption</span>
-                    </div>
-                    <div className="checklist-item">
-                      <CheckCircle2 size={13} color="#10b981" />
-                      <span>Mandatory #ad / #collab disclosure clearly visible</span>
-                    </div>
-                    <div className="checklist-item">
-                      <CheckCircle2 size={13} color="#10b981" />
-                      <span>Brand collaborator tag accepted on post</span>
+              {/* 3-Column Metrics Card (Screenshot Match) */}
+              {isStage2 && (
+                <div className="video-modal__metrics-container">
+                  <div className="video-modal__metric-block">
+                    <div className="video-modal__metric-label">REACH / VIEWS</div>
+                    <div className="video-modal__metric-value video-modal__metric-value--dark">
+                      {formatCompactNumber(views)}
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* State 5: Live Post Rejected */}
-            {isLiveRejected && (
-              <div className="status-stage-callout status-stage-callout--rejected">
-                <div className="status-stage-callout__badge">
-                  <AlertCircle size={13} />
-                  <span>Live Post Revision Requested</span>
-                </div>
-                <h4>Live Post Compliance Issue</h4>
-                <div className="status-stage-callout__detail-item">
-                  <strong>Rejection Reason:</strong>
-                  <span>{submission.liveRejectionReason}</span>
-                </div>
-                {submission.liveReviewNotes && (
-                  <div className="status-stage-callout__detail-item">
-                    <strong>Admin Guidance:</strong>
-                    <span>{submission.liveReviewNotes}</span>
+                  <div className="video-modal__metric-block">
+                    <div className="video-modal__metric-label">ENGAGEMENT</div>
+                    <div className="video-modal__metric-value video-modal__metric-value--purple">
+                      {er}
+                    </div>
                   </div>
-                )}
-                {submission.livePostUrl && (
-                  <div className="status-stage-callout__re-action-row">
-                    <a
-                      href={submission.livePostUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="status-stage-callout__re-link"
-                    >
-                      <span>Check Live URL Again ↗</span>
-                    </a>
-                    <button
-                      type="button"
-                      className="status-stage-callout__re-btn"
-                      onClick={handleApproveLivePostAction}
-                    >
-                      <Check size={13} />
-                      <span>Approve Live Post Instead</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* State 6: Live Post Approved (Completed) */}
-            {isLiveApproved && (
-              <div className="status-stage-callout status-stage-callout--approved">
-                <div className="status-stage-callout__badge">
-                  <CheckCircle2 size={13} />
-                  <span>Live Post QA Approved</span>
-                </div>
-                <h4>Live Post Verified & Approved</h4>
-                <p>
-                  {submission.liveReviewNotes || 'Live post link verified on Instagram/YouTube and approved by admin.'}
-                </p>
-                {submission.livePostUrl && (
-                  <a
-                    href={submission.livePostUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="status-stage-callout__link-btn"
-                  >
-                    <span>View Approved Live Post ↗</span>
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Draft Details: Caption and Products */}
-            <div className="video-modal__details">
-              <div className="video-modal__field">
-                <label className="video-modal__field-label">
-                  <MessageSquare size={13} />
-                  <span>Caption & Copy</span>
-                </label>
-                <div className="video-modal__caption-box">
-                  {submission.caption || 'No caption provided.'}
-                </div>
-              </div>
-
-              {submission.taggedProducts?.length > 0 && (
-                <div className="video-modal__field">
-                  <label className="video-modal__field-label">
-                    <Tag size={13} />
-                    <span>Tagged Campaign Products ({submission.taggedProducts.length})</span>
-                  </label>
-                  <div className="video-modal__products-grid">
-                    {submission.taggedProducts.map((p, idx) => (
-                      <div key={idx} className="video-modal__product-chip">
-                        <div className="video-modal__product-name">{p.name}</div>
-                        <div className="video-modal__product-meta">
-                          <span className="video-modal__product-price">{p.price}</span>
-                          <span className="video-modal__product-brand">{p.brand}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="video-modal__metric-block">
+                    <div className="video-modal__metric-label">SALES DRIVEN</div>
+                    <div className="video-modal__metric-value video-modal__metric-value--green">
+                      {formatCurrency(sales)}
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* ==============================================================
-                ACTIONS AREA: Only for actionable stages (draft_review or final_review)
-               ============================================================== */}
-            {(!isLiveApproved && !isAwaitingLiveLink && !isDraftRejected && !isLiveRejected) && (
-              <div className="video-modal__actions-wrapper">
-                {!showRejectForm ? (
-                  /* Standard Decision Buttons */
-                  <div className="video-modal__decision-box">
-                    <div className="video-modal__notes-input-wrapper">
-                      <label className="video-modal__notes-label">
-                        <MessageSquare size={13} />
-                        <span>{isStageFinal ? 'QA Verification Notes (Optional)' : 'Review Notes / Feedback (Optional)'}</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={
-                          isStageFinal
-                            ? 'e.g., Live Reel verified, discount code and #ad disclosure present. Approved.'
-                            : 'e.g., Excellent visual pacing and lighting, approved for publishing live.'
-                        }
-                        value={reviewNote}
-                        onChange={(e) => setReviewNote(e.target.value)}
-                        className="video-modal__notes-input"
-                      />
-                    </div>
-
-                    <div className="video-modal__btn-row">
-                      {isStageFinal ? (
-                        <button
-                          type="button"
-                          className="video-modal__btn video-modal__btn--approve"
-                          onClick={handleApproveLivePostAction}
-                        >
-                          <CheckCircle2 size={16} />
-                          <span>Approve Live Post</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="video-modal__btn video-modal__btn--approve"
-                          onClick={handleApproveDraftAction}
-                        >
-                          <Check size={16} />
-                          <span>Approve Draft & Request Live Post</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        className="video-modal__btn video-modal__btn--reject-trigger"
-                        onClick={() => setShowRejectForm(true)}
-                      >
-                        <XCircle size={16} />
-                        <span>{isStageFinal ? 'Reject Live Post with Reason' : 'Reject Draft with Reason'}</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Rejection Feedback Studio Form */
-                  <div className="video-modal__reject-studio">
-                    <div className="video-modal__reject-header">
-                      <div className="video-modal__reject-title">
-                        <ShieldAlert size={16} color="#ef4444" />
-                        <span>{isStageFinal ? 'Reject Live Post — Select Reason' : 'Reject Draft — Select Reason'}</span>
+            {/* Brand Action Controls (when pending review and not awaiting live post) */}
+            {!isLiveApproved && !isAwaitingLiveLink && (
+              <div className="video-modal__brand-actions-container">
+                {isRejected ? (
+                  <div className="video-modal__rejected-banner">
+                    <div className="video-modal__banner-left">
+                      <XCircle size={18} color="#dc2626" />
+                      <div>
+                        <div className="video-modal__banner-title" style={{ color: '#991b1b' }}>
+                          {isStage2 ? 'Live Link Rejected by Brand' : 'Content Rejected by Brand'}
+                        </div>
+                        <div className="video-modal__banner-sub" style={{ color: '#b91c1c' }}>
+                          Reason: {currentSubmission.liveRejectionReason || currentSubmission.draftRejectionReason || 'Revision requested from creator.'}
+                        </div>
                       </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="video-modal__btn-undo"
+                      onClick={handleUndo}
+                      title="Undo and re-evaluate"
+                    >
+                      Re-evaluate
+                    </button>
+                  </div>
+                ) : showRejectForm ? (
+                  <div className="video-modal__reject-form">
+                    <div className="video-modal__reject-header">
+                      <span className="video-modal__reject-title">Select Rejection Reason</span>
                       <button
                         type="button"
-                        className="video-modal__reject-cancel-link"
+                        className="video-modal__reject-close-btn"
                         onClick={() => setShowRejectForm(false)}
                       >
                         Cancel
                       </button>
                     </div>
-
-                    <p className="video-modal__reject-hint">
-                      {isStageFinal
-                        ? 'Select why this live post cannot be approved. The creator will receive this guidance to make fixes.'
-                        : 'Choose why this draft video does not meet brand specifications. The creator will be required to edit or re-film.'}
-                    </p>
-
-                    {/* Radio Options */}
-                    <div className="video-modal__reasons-list">
-                      {activeRejectionReasons.map(r => (
-                        <label
-                          key={r.id}
-                          className={`video-modal__reason-option ${selectedReasonId === r.id ? 'active' : ''}`}
-                        >
-                          <input
-                            type="radio"
-                            name="rejectReason"
-                            value={r.id}
-                            checked={selectedReasonId === r.id}
-                            onChange={() => setSelectedReasonId(r.id)}
-                          />
-                          <span>{r.label}</span>
-                        </label>
-                      ))}
-                    </div>
-
-                    {/* Custom note textarea */}
-                    <div className="video-modal__custom-reason">
-                      <label className="video-modal__custom-label">
-                        Detailed Guidance / Specific Revision Instructions:
-                      </label>
-                      <textarea
-                        rows={2}
-                        placeholder={
-                          isStageFinal
-                            ? 'e.g. Please update your Instagram caption to include the discount code and tag @myntra before this post can be approved.'
-                            : 'e.g. Please re-shoot the intro with clear logo placement and include the coupon code in the text overlay.'
-                        }
-                        value={customReasonText}
-                        onChange={(e) => setCustomReasonText(e.target.value)}
-                        className="video-modal__textarea"
-                      />
-                    </div>
-
-                    {/* Creator Feedback Advisory (PRD 8.7.2 CRS-08) */}
-                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '8px 12px', fontSize: 11, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0' }}>
-                      <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                      <span>This feedback will be shared with the creator. Please keep it clear and respectful.</span>
-                    </div>
-
-                    {/* Confirm Rejection Button */}
+                    <select
+                      className="video-modal__reject-select"
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                    >
+                      {isStage2 ? (
+                        <>
+                          <option value="Caption Guideline Violation (Missing @pg / #PGFamily)">Caption Guideline Violation (Missing @pg / #PGFamily)</option>
+                          <option value="Missing Mandatory Disclosures (#Ad / #Collab)">Missing Mandatory Disclosures (#Ad / #Collab)</option>
+                          <option value="Missing or Incorrect Promo Code">Missing or Incorrect Promo Code</option>
+                          <option value="Broken / Missing Live Link">Broken / Missing Live Link</option>
+                          <option value="Other Live Link Revision Feedback">Other Live Link Revision Feedback</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="Missing Mandatory Disclosures (#Ad / #Collab)">Missing Mandatory Disclosures (#Ad / #Collab)</option>
+                          <option value="Video Length Mismatch">Video Length Mismatch</option>
+                          <option value="Audio / Background Noise Issues">Audio / Background Noise Issues</option>
+                          <option value="Poor Lighting or Framing">Poor Lighting or Framing</option>
+                          <option value="Other Custom Revision Feedback">Other Custom Revision Feedback</option>
+                        </>
+                      )}
+                    </select>
+                    <textarea
+                      className="video-modal__reject-textarea"
+                      placeholder="Provide specific revision notes for the creator..."
+                      value={rejectNotes}
+                      onChange={(e) => setRejectNotes(e.target.value)}
+                      rows={2}
+                    />
                     <div className="video-modal__reject-actions">
                       <button
                         type="button"
-                        className="video-modal__btn video-modal__btn--cancel"
+                        className="video-modal__btn-cancel"
                         onClick={() => setShowRejectForm(false)}
                       >
                         Back
                       </button>
                       <button
                         type="button"
-                        className="video-modal__btn video-modal__btn--confirm-reject"
-                        disabled={isRejectDisabled}
-                        onClick={isStageFinal ? handleRejectLivePostAction : handleRejectDraftAction}
+                        className="video-modal__btn-confirm-reject"
+                        onClick={handleConfirmReject}
                       >
-                        <XCircle size={16} />
-                        <span>Confirm Rejection with Reason</span>
+                        <XCircle size={14} />
+                        <span>Confirm Rejection</span>
                       </button>
                     </div>
                   </div>
+                ) : (
+                  <div className="video-modal__action-bar">
+                    <button
+                      type="button"
+                      className="video-modal__btn-approve"
+                      onClick={handleApprove}
+                    >
+                      <CheckCircle2 size={17} />
+                      <span>{isStage2 ? 'Approve Live Post' : 'Approve Content'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="video-modal__btn-reject"
+                      onClick={() => setShowRejectForm(true)}
+                    >
+                      <XCircle size={17} />
+                      <span>{isStage2 ? 'Reject Live Post' : 'Reject Content'}</span>
+                    </button>
+                  </div>
                 )}
+              </div>
+            )}
+
+            {(isLiveApproved || isAwaitingLiveLink) && (
+              <div style={{ textAlign: 'right', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="video-modal__btn-undo-subtle"
+                  onClick={handleUndo}
+                  title={isAwaitingLiveLink ? 'Re-open draft review' : 'Re-open review'}
+                >
+                  {isAwaitingLiveLink ? 'Re-open Draft Review' : 'Re-open Review'}
+                </button>
               </div>
             )}
           </div>

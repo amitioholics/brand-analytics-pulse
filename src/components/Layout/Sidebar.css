@@ -71,13 +71,14 @@
 .sidebar__link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   padding: 10px 14px;
   border-radius: 12px;
   color: #2e2a47;
-  font-size: 0.9375rem;
+  font-size: 0.8875rem;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
@@ -174,9 +175,20 @@
   text-overflow: ellipsis;
 }
 
+.sidebar__user-email {
+  font-size: 0.6875rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 135px;
+  line-height: 1.25;
+}
+
 .sidebar__user-brand {
   font-size: 0.6875rem;
-  color: var(--hp-text-secondary);
+  color: var(--hp-text-tertiary);
+  margin-top: 1px;
 }
 
 /* Sign Out Button — matches HaulPack's exact bordered button */

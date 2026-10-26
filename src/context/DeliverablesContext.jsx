@@ -5,11 +5,11 @@ const DeliverablesContext = createContext(null);
 
 export function DeliverablesProvider({ children }) {
   const [submissions, setSubmissions] = useState(() => {
-    const saved = localStorage.getItem('hp_brand_connect_submissions_v4');
+    const saved = localStorage.getItem('hp_brand_connect_submissions_v16');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_SUBMISSIONS.length) {
+        if (Array.isArray(parsed) && parsed.length === INITIAL_SUBMISSIONS.length) {
           return parsed;
         }
       } catch (e) {
@@ -20,7 +20,7 @@ export function DeliverablesProvider({ children }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('hp_brand_connect_submissions_v4', JSON.stringify(submissions));
+    localStorage.setItem('hp_brand_connect_submissions_v16', JSON.stringify(submissions));
   }, [submissions]);
 
   // Stage 1: Approve Draft Video
@@ -56,6 +56,25 @@ export function DeliverablesProvider({ children }) {
             draftRejectionReason: reason,
             draftReviewNotes: reviewNotes || '',
             draftReviewedAt: new Date().toISOString(),
+          };
+        }
+        return sub;
+      })
+    );
+  };
+
+  // Reset Draft Review to pending
+  const resetDraftReview = (submissionId) => {
+    setSubmissions(prev =>
+      prev.map(sub => {
+        if (sub.id === submissionId) {
+          return {
+            ...sub,
+            stage: 'draft_review',
+            status: 'Raw Video Pending Review',
+            draftStatus: 'Pending Review',
+            draftRejectionReason: null,
+            draftReviewNotes: null,
           };
         }
         return sub;
@@ -150,7 +169,9 @@ export function DeliverablesProvider({ children }) {
   };
 
   const getSubmissionsByCampaign = (campaignId) => {
-    return submissions.filter(s => s.campaignId === campaignId);
+    if (!campaignId) return submissions;
+    const filtered = submissions.filter(s => s.campaignId === campaignId);
+    return filtered.length > 0 ? filtered : submissions;
   };
 
   const pendingDraftsCount = submissions.filter(s => s.stage === 'draft_review').length;
@@ -186,6 +207,7 @@ export function DeliverablesProvider({ children }) {
         rejectFinalPayment,
         approveSubmission,
         rejectSubmission,
+        resetDraftReview,
         getSubmissionsByCampaign,
         resetToDefaults,
       }}

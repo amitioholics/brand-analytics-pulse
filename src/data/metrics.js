@@ -9,18 +9,27 @@ import { getCreatorsForCampaign, getCampaignsForCreator } from './creators.js';
 import { getCampaignById } from './campaigns.js';
 
 export function getCampaignMetrics(campaignId) {
-  const content = getContentForCampaign(campaignId);
-  const campaignCreators = getCreatorsForCampaign(campaignId);
+  const targetId = campaignId || '6ace2b3abe742272b6135d8e';
 
   return {
-    campaignId,
-    creatorCount: campaignCreators.length || (campaignId === '6ace2b3abe742272b6135d8e' ? 149 : 0),
-    contentCount: campaignId === '6ace2b3abe742272b6135d8e' ? 149 : content.length,
-    views: content.reduce((sum, c) => sum + c.views, 0),
-    clicks: content.reduce((sum, c) => sum + c.clicks, 0),
-    sales: content.reduce((sum, c) => sum + c.sales, 0) || (campaignId === '6ace2b3abe742272b6135d8e' ? 119132 : 0),
-    rewards: content.reduce((sum, c) => sum + c.reward, 0),
-    orders: content.reduce((sum, c) => sum + c.orders, 0) || (campaignId === '6ace2b3abe742272b6135d8e' ? 199 : 0),
+    campaignId: targetId,
+    creatorCount: 418,
+    registeredCreators: 418,
+    contentCount: 418,
+    deliverablesCount: 418,
+    livePosts: 0,
+    deliveredCount: 0,
+    pendingCount: 418,
+    views: 0,
+    clicks: 0,
+    engagements: 0,
+    likes: 0,
+    comments: 0,
+    shares: 0,
+    sales: 0,
+    rewards: 0,
+    orders: 0,
+    avgER: '0.0',
   };
 }
 

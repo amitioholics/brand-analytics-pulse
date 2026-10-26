@@ -89,7 +89,7 @@
   --shadow-drawer: -4px 0 24px rgba(0, 0, 0, 0.12);
 
   /* Layout */
-  --sidebar-width: 240px;
+  --sidebar-width: 250px;
   --sidebar-collapsed: 64px;
   --header-height: 64px;
   --content-max-width: 1400px;

@@ -10,7 +10,7 @@ export const INITIAL_TEAM_MEMBERS = [
   {
     id: 'user_001',
     name: 'Maya Sen',
-    email: 'maya.sen@myntra.com',
+    email: 'maya.sen@pg.com',
     role: 'Brand Admin',
     status: 'Active',
     avatarColor: '#655bef',
@@ -20,7 +20,7 @@ export const INITIAL_TEAM_MEMBERS = [
   {
     id: 'user_002',
     name: 'Rohit Khanna',
-    email: 'rohit.khanna@myntra.com',
+    email: 'rohit.khanna@pg.com',
     role: 'Content Reviewer',
     status: 'Active',
     avatarColor: '#10b981',
@@ -30,7 +30,7 @@ export const INITIAL_TEAM_MEMBERS = [
   {
     id: 'user_003',
     name: 'Tanvi Deshmukh',
-    email: 'tanvi.deshmukh@myntra.com',
+    email: 'tanvi.deshmukh@pg.com',
     role: 'Content Reviewer',
     status: 'Active',
     avatarColor: '#f59e0b',
@@ -40,7 +40,7 @@ export const INITIAL_TEAM_MEMBERS = [
   {
     id: 'user_004',
     name: 'Vikramaditya Roy',
-    email: 'vikram.roy@myntra.com',
+    email: 'vikram.roy@pg.com',
     role: 'Viewer',
     status: 'Active',
     avatarColor: '#ec4899',

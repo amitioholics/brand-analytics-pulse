@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { getCampaignsByPortal } from '../data/campaigns';
 import { getCampaignMetrics } from '../data/metrics';
 import { getBarterFulfillmentForCampaign } from '../data/creators';
-import { formatNumber, formatCurrency, formatDateRange } from '../utils/formatters';
+import { formatNumber, formatCurrency, formatCompactNumber, formatDateRange } from '../utils/formatters';
 import { usePortal } from '../context/PortalContext';
 import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
 import DataTable from '../components/common/DataTable';
 import StatusBadge from '../components/common/StatusBadge';
 import Breadcrumb from '../components/common/Breadcrumb';
+import PGLogo from '../components/common/PGLogo';
 import './CampaignList.css';
 
 export default function CampaignList() {
@@ -47,16 +48,32 @@ export default function CampaignList() {
   const columns = [
     {
       key: 'name',
-      label: isBrandConnect ? 'Campaign Name' : 'Program Name',
-      width: '280px',
-      render: (val) => <span style={{ fontWeight: 600 }}>{val}</span>,
+      label: 'Campaign Name',
+      width: '320px',
+      render: (val, row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: 52, height: 34, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#5b21b6', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <img
+              src={row.imageUrl || '/campaign-banner.png'}
+              alt={val}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, color: '#111827' }}>{val}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+              {row.compensationType || 'Paid Collab'}
+            </div>
+          </div>
+        </div>
+      ),
     },
     {
       key: 'duration',
       label: 'Duration',
       sortable: false,
       render: (_, row) => (
-        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--hp-text-secondary)' }}>
+        <span style={{ fontSize: 'var(--text-sm)', color: '#4b5563' }}>
           {formatDateRange(row.startDate, row.endDate)}
         </span>
       ),
@@ -68,61 +85,42 @@ export default function CampaignList() {
     },
     {
       key: 'creatorCount',
-      label: isBrandConnect ? 'Registered Creators' : 'Creators',
+      label: 'Registered Creators',
       align: 'right',
-      render: (val, row) => {
-        if (isBrandConnect && row.isBarter) {
-          const barter = getBarterFulfillmentForCampaign(row.id);
-          return (
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontWeight: 600 }}>{formatNumber(val)} registered</div>
-              <div style={{ fontSize: '11px', display: 'flex', gap: 5, justifyContent: 'flex-end', marginTop: 2 }}>
-                <span style={{ color: '#059669', fontWeight: 600 }}>{barter.deliveredCount} Delivered</span>
-                <span style={{ color: '#cbd5e1' }}>•</span>
-                <span style={{ color: '#d97706', fontWeight: 600 }}>{barter.yetToReceiveCount} Pending</span>
-              </div>
-            </div>
-          );
-        }
-        return formatNumber(val);
-      },
+      render: (val, row) => (
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontWeight: 600, color: '#111827' }}>{formatNumber(val || row.registeredCreatorsCount || 418)} registered</div>
+          <div style={{ fontSize: '11px', display: 'flex', gap: 5, justifyContent: 'flex-end', marginTop: 2 }}>
+            <span style={{ color: '#059669', fontWeight: 600 }}>0 Delivered</span>
+            <span style={{ color: '#cbd5e1' }}>•</span>
+            <span style={{ color: '#d97706', fontWeight: 600 }}>418 Pending</span>
+          </div>
+        </div>
+      ),
     },
     {
       key: 'contentCount',
-      label: isBrandConnect ? 'Deliverables' : 'Content',
+      label: 'Content',
       align: 'right',
-      render: (val) => formatNumber(val),
+      render: (val, row) => formatNumber(val || row.contentCount || row.deliverablesCount || 418),
+    },
+    {
+      key: 'livePosts',
+      label: 'Live Posts',
+      align: 'right',
+      render: (val) => formatNumber(val || 0),
     },
     {
       key: 'views',
-      label: isBrandConnect ? 'Reach' : 'Views',
+      label: 'Views',
       align: 'right',
-      render: (val) => formatNumber(val),
+      render: (val) => formatCompactNumber(val || 0),
     },
     {
-      key: 'clicks',
-      label: isBrandConnect ? 'Engagements' : 'Clicks',
+      key: 'engagements',
+      label: 'Engagement',
       align: 'right',
-      render: (val) => formatNumber(val),
-    },
-    {
-      key: 'sales',
-      label: isBrandConnect ? 'Media Value' : 'Sales Driven',
-      align: 'right',
-      render: (val) => formatCurrency(val),
-    },
-    {
-      key: 'action',
-      label: '',
-      sortable: false,
-      render: (_, row) => (
-        <button
-          className="campaign-list__view-btn"
-          onClick={(e) => { e.stopPropagation(); navigate(`/campaigns/${row.id}`); }}
-        >
-          View →
-        </button>
-      ),
+      render: (val) => formatCompactNumber(val || 0),
     },
   ];
 

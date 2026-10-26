@@ -9,7 +9,7 @@ export default function SignIn() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('brand.partner@myntra.com');
+  const [email, setEmail] = useState('brand.partner@pg.com');
   const [password, setPassword] = useState('••••••••••••');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -29,13 +29,13 @@ export default function SignIn() {
   };
 
   const handleQuickDemo = () => {
-    setEmail('brand.partner@myntra.com');
-    setPassword('myntra-brand-2026');
+    setEmail('brand.partner@pg.com');
+    setPassword('pg-brand-2026');
     setError('');
     setIsLoading(true);
 
     setTimeout(() => {
-      login('brand.partner@myntra.com', 'myntra-brand-2026');
+      login('brand.partner@pg.com', 'pg-brand-2026');
       setIsLoading(false);
       navigate('/');
     }, 450);
@@ -66,7 +66,7 @@ export default function SignIn() {
           disabled={isLoading}
         >
           <Sparkles size={16} color="#6538ea" />
-          <span>Quick Demo Access (Myntra Partner)</span>
+          <span>Quick Demo Access (P&G Partner)</span>
           <ArrowRight size={15} />
         </button>
 

@@ -1,505 +1,272 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Megaphone,
-  CheckCircle,
-  Clock,
+  Sparkles,
   TrendingUp,
+  Clock,
+  CheckCircle2,
   ArrowRight,
   Eye,
-  MousePointerClick,
-  ShoppingCart,
   FileVideo,
-  Sparkles,
-  Gift,
-  ArrowRightLeft,
-  FileText,
-  Landmark,
-  Receipt,
 } from 'lucide-react';
-import { getCampaignsByPortal } from '../data/campaigns';
+import { campaigns } from '../data/campaigns';
 import { getCampaignMetrics } from '../data/metrics';
-import { formatNumber, formatCurrency, formatDate } from '../utils/formatters';
-import { usePortal } from '../context/PortalContext';
+import { formatDate, formatCompactNumber, formatNumber } from '../utils/formatters';
 import { useDeliverables } from '../context/DeliverablesContext';
-import { useInvoices } from '../context/InvoiceContext';
-import StatusBadge from '../components/common/StatusBadge';
+import PGLogo from '../components/common/PGLogo';
+import PulseLogo from '../components/common/PulseLogo';
 import './Dashboard.css';
 
 export default function Dashboard() {
-  const { portal, togglePortal, currentConfig, isBrandConnect } = usePortal();
-  const { pendingCount, pendingDraftsCount, pendingLivePostsCount } = useDeliverables();
-  const { pendingCount: pendingInvoicesCount, totalPendingAmount } = useInvoices();
+  const { pendingCount, pendingDraftsCount, pendingLivePostsCount, liveApprovedCount } = useDeliverables();
 
-  // Filter campaigns strictly for the active portal mode
-  const portalCampaigns = useMemo(() => {
-    return getCampaignsByPortal(portal);
-  }, [portal]);
+  // Exactly 1 P&G campaign on Dashboard
+  const portalCampaigns = [campaigns[0]];
+  const singleCampaign = portalCampaigns[0];
+  const metrics = useMemo(() => getCampaignMetrics(singleCampaign?.id), [singleCampaign]);
 
-  const activeCampaigns = portalCampaigns.filter(c => c.status === 'Active');
-  const scheduledCampaigns = portalCampaigns.filter(c => c.status === 'Scheduled');
-  const completedCampaigns = portalCampaigns.filter(c => c.status === 'Completed');
+  const activeCampaigns = useMemo(() => {
+    return portalCampaigns.filter(c => c.status === 'Active');
+  }, [portalCampaigns]);
 
-  // Summary stats across active portal campaigns
-  const allMetrics = portalCampaigns.map(c => getCampaignMetrics(c.id));
-  const totalContent = allMetrics.reduce((s, m) => s + m.contentCount, 0);
-  const totalViews = allMetrics.reduce((s, m) => s + m.views, 0);
-  const totalClicks = allMetrics.reduce((s, m) => s + m.clicks, 0);
-  const totalSales = allMetrics.reduce((s, m) => s + m.sales, 0);
+  const scheduledCampaigns = useMemo(() => {
+    return portalCampaigns.filter(c => c.status === 'Scheduled');
+  }, [portalCampaigns]);
 
-  const summaryCards = [
-    {
-      label: isBrandConnect ? 'Total Campaigns' : 'Total Programs',
-      value: portalCampaigns.length,
-      icon: isBrandConnect ? Sparkles : Megaphone,
-      color: currentConfig.accentColor,
-      bg: currentConfig.secondaryColor,
-    },
-    {
-      label: isBrandConnect ? 'Active Campaigns' : 'Active Programs',
-      value: activeCampaigns.length,
-      icon: TrendingUp,
-      color: '#10b981',
-      bg: '#e8fbf3',
-    },
-    {
-      label: isBrandConnect ? 'Scheduled Launches' : 'Scheduled',
-      value: scheduledCampaigns.length,
-      icon: Clock,
-      color: '#d97706',
-      bg: '#fef7e6',
-    },
-    {
-      label: 'Completed',
-      value: completedCampaigns.length,
-      icon: CheckCircle,
-      color: '#475569',
-      bg: '#f1f3f9',
-    },
-  ];
+  const completedCampaigns = useMemo(() => {
+    return portalCampaigns.filter(c => c.status === 'Completed');
+  }, [portalCampaigns]);
 
   return (
-    <div className={`dashboard fade-in dashboard--${portal}`}>
+    <div className="dashboard fade-in">
+      {/* 1. Header */}
       <div className="dashboard__header">
-        <div>
-          <div className="dashboard__header-top">
-            <h1 className="dashboard__title">
-              Pulse
-            </h1>
-            <span className={`dashboard__mode-pill dashboard__mode-pill--${portal}`}>
-              {isBrandConnect ? <Sparkles size={13} /> : <Gift size={13} />}
-              <span>{currentConfig.tag}</span>
-            </span>
-          </div>
-          <p className="dashboard__subtitle">
-            {isBrandConnect
-              ? 'Real-time influencer campaigns, deliverables, and brand media reach.'
-              : 'Real-time creator catalog hauls, affiliate conversion, and gross sales attribution.'}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={togglePortal}
-          className="dashboard__switch-toggle-btn"
-          title={`Switch view to ${isBrandConnect ? 'Reward Program' : 'Brand Connect'}`}
-        >
-          <ArrowRightLeft size={14} />
-          <span>Switch to {isBrandConnect ? 'Reward Program' : 'Brand Connect'}</span>
-        </button>
-      </div>
-
-      {/* HaulPack Banner */}
-      <div className={`dashboard__haulpack-banner dashboard__haulpack-banner--${portal}`}>
-        <div className="dashboard__banner-content">
-          <div className="dashboard__banner-badge">
-            <span>{currentConfig.badgeText}</span>
-          </div>
-          <h2 className="dashboard__banner-title">
-            {currentConfig.bannerTitle}
-          </h2>
-          <p className="dashboard__banner-subtitle">
-            {currentConfig.bannerSubtitle}
-          </p>
-        </div>
-        <div className="dashboard__banner-actions">
-          <Link to="/campaigns" className="dashboard__banner-btn">
-            {currentConfig.primaryActionText}
-          </Link>
-          <Link to="/creators" className="dashboard__banner-btn dashboard__banner-btn--secondary">
-            Creator Directory
-          </Link>
-        </div>
-      </div>
-
-      {/* Brand Connect: Action Items Card (PRD 8.3 HM-01) */}
-      {isBrandConnect && (
-        <div className="dashboard__action-items-card" style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #fbfaff 100%)',
-          border: '1.5px solid #ddd6fe',
-          borderRadius: 12,
-          padding: '20px 24px',
-          marginBottom: 24,
-          boxShadow: '0 4px 14px rgba(101, 91, 239, 0.08)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 20,
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: '#eef2ff',
-              color: '#4f46e5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <FileVideo size={24} />
+        <div className="dashboard__header-inner">
+          <div className="dashboard__header-left">
+            <div className="dashboard__header-top">
+              <h1 className="dashboard__title">Pulse Dashboard</h1>
+              <span className="dashboard__direct-collabs-pill">
+                <PGLogo size={16} />
+                <span>DIRECT COLLABS</span>
+              </span>
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-                <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                  {pendingCount > 0 ? `${pendingCount} Content Pieces Awaiting Brand Review` : 'All Content Reviewed!'}
-                </h3>
-                {pendingCount > 0 && (
-                  <span style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Clock size={12} />
-                    <span>2 items close to SLA (less than 12h left)</span>
-                  </span>
-                )}
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                {pendingDraftsCount} video drafts need your creative approval • {pendingLivePostsCount} published links awaiting live post verification.
-              </p>
-            </div>
+            <p className="dashboard__subtitle">
+              Real-time influencer campaigns, deliverables, and brand media reach.
+            </p>
           </div>
 
-          <Link
-            to="/approvals"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'var(--hp-primary, #655bef)',
-              color: '#ffffff',
-              padding: '10px 20px',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 2px 8px rgba(101, 91, 239, 0.3)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span>Review Now</span>
-            <ArrowRight size={15} />
-          </Link>
-        </div>
-      )}
-
-      {/* Creator Invoices & Reimbursement Action Alert */}
-      {pendingInvoicesCount > 0 && (
-        <div className="dashboard__action-items-card" style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #fffbf5 100%)',
-          border: '1.5px solid #fed7aa',
-          borderRadius: 12,
-          padding: '18px 24px',
-          marginBottom: 24,
-          boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 20,
-          flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: '#fef3c7',
-              color: '#d97706',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}>
-              <Receipt size={24} />
+          {/* Big P&G Brand Lockup on the far right */}
+          <div className="dashboard__header-brand-card" title="Procter & Gamble — Verified Brand Partner">
+            <div className="dashboard__header-brand-logo-wrap">
+              <PGLogo size={48} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
-                <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                  {pendingInvoicesCount} Creator Reimbursement {pendingInvoicesCount === 1 ? 'Invoice' : 'Invoices'} Awaiting Verification
-                </h3>
-                <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span>{formatCurrency(totalPendingAmount)} Total Claimed</span>
+            <div className="dashboard__header-brand-details">
+              <div className="dashboard__header-brand-name-row">
+                <span className="dashboard__header-brand-name">Procter &amp; Gamble</span>
+                <span className="dashboard__header-brand-pill">
+                  <CheckCircle2 size={11} />
+                  <span>Verified</span>
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
-                Creators have submitted receipts and tax invoices for product purchases, studio equipment, and campaign logistics.
-              </p>
+              <span className="dashboard__header-brand-caption">
+                Official Brand Partner • Collabs Portal
+              </span>
             </div>
           </div>
-
-          <Link
-            to="/invoices?status=pending"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#d97706',
-              color: '#ffffff',
-              padding: '10px 20px',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 700,
-              textDecoration: 'none',
-              boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span>Verify Invoices</span>
-            <ArrowRight size={15} />
-          </Link>
         </div>
-      )}
-
-      {/* Summary Cards */}
-      <div className="dashboard__summary">
-        {summaryCards.map(card => {
-          const Icon = card.icon;
-          return (
-            <div key={card.label} className="dashboard__summary-card" style={{ background: card.bg }}>
-              <div className="dashboard__summary-icon" style={{ color: card.color }}>
-                <Icon size={20} />
-              </div>
-              <div className="dashboard__summary-value" style={{ color: card.color }}>
-                {card.value}
-              </div>
-              <div className="dashboard__summary-label">{card.label}</div>
-            </div>
-          );
-        })}
       </div>
 
-      {/* Aggregate Performance Overview */}
-      {isBrandConnect ? (
-        /* Brand Connect: Social Performance Roll-up (PRD 8.3 HM-03) */
-        <div className="dashboard__performance-bar">
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#3b82f6', background: '#eff6ff' }}>
-              <FileVideo size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">LIVE POSTS</span>
-              <span className="dashboard__perf-val">24 Posts</span>
-            </div>
+      {/* 2. Hero Dark Purple Banner */}
+      <div className="dashboard__hero-banner">
+        <div className="dashboard__hero-content">
+          <div className="dashboard__hero-pill">
+            <Sparkles size={12} />
+            <span>Pulse</span>
           </div>
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#10b981', background: '#ecfdf5' }}>
-              <Eye size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">TOTAL VIEWS</span>
-              <span className="dashboard__perf-val">{formatNumber(totalViews)}</span>
-            </div>
-          </div>
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#655bef', background: '#eef2ff' }}>
-              <TrendingUp size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">TOTAL REACH</span>
-              <span className="dashboard__perf-val">{formatNumber(Math.round(totalViews * 0.82))}</span>
-            </div>
-          </div>
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#059669', background: '#e8fbf3' }}>
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">AVG. ENGAGEMENT RATE</span>
-              <span className="dashboard__perf-val" style={{ color: '#059669' }}>7.4%</span>
-            </div>
-          </div>
+          <h2 className="dashboard__hero-title">
+            Creator Campaigns & Influencer Partnerships
+          </h2>
+          <p className="dashboard__hero-subtitle">
+            Direct brand activations, sponsored campaign deliverables, creator reach, and content engagement analytics.
+          </p>
         </div>
-      ) : (
-        /* Reward Program: Sales/Affiliate Performance Roll-up */
-        <div className="dashboard__performance-bar">
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: currentConfig.accentColor, background: currentConfig.secondaryColor }}>
-              <FileVideo size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">{currentConfig.metricLabels.content}</span>
-              <span className="dashboard__perf-val">{formatNumber(totalContent)}</span>
-            </div>
-          </div>
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#655bef', background: 'var(--hp-primary-lighter)' }}>
-              <Eye size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">{currentConfig.metricLabels.reach}</span>
-              <span className="dashboard__perf-val">{formatNumber(totalViews)}</span>
-            </div>
-          </div>
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#10b981', background: '#d1fae5' }}>
-              <MousePointerClick size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">{currentConfig.metricLabels.engagement}</span>
-              <span className="dashboard__perf-val">{formatNumber(totalClicks)}</span>
-            </div>
-          </div>
-          <div className="dashboard__perf-item">
-            <div className="dashboard__perf-icon" style={{ color: '#059669', background: '#e8fbf3' }}>
-              <ShoppingCart size={18} />
-            </div>
-            <div>
-              <span className="dashboard__perf-label">{currentConfig.metricLabels.value}</span>
-              <span className="dashboard__perf-val" style={{ color: '#059669' }}>{formatCurrency(totalSales)}</span>
-            </div>
-          </div>
+        <div className="dashboard__hero-actions">
+          <Link to="/campaigns" className="dashboard__hero-btn dashboard__hero-btn--white">
+            View All Campaigns
+          </Link>
+          <Link to="/campaigns/6ace2b3abe742272b6135d8e#reimbursements" className="dashboard__hero-btn dashboard__hero-btn--purple">
+            Creator Reimbursements
+          </Link>
         </div>
-      )}
+      </div>
 
-      {/* Grid: Active Campaigns (HM-02) & Recent Activity Feed (HM-04) */}
-      <div style={{ display: 'grid', gridTemplateColumns: isBrandConnect ? '2fr 1fr' : '1fr', gap: 24 }}>
-        {/* Recent Campaigns / Collabs */}
-        <div className="dashboard__section" style={{ margin: 0 }}>
-          <div className="dashboard__section-header">
-            <div>
-              <h2 className="dashboard__section-title">
-                {isBrandConnect ? 'Active Brand Campaigns' : 'Recent Reward Programs'}
-              </h2>
-              <p className="dashboard__section-subtitle">
-                {isBrandConnect
-                  ? 'Campaign progress, deliverable pipelines, and verified live posts'
-                  : 'Performance affiliate milestones and sales attribution'}
-              </p>
-            </div>
-            <Link to="/campaigns" className="dashboard__view-all">
-              View all {isBrandConnect ? 'campaigns' : 'programs'} <ArrowRight size={14} />
+      {/* 3. Review Alert Card */}
+      <div className="dashboard__review-alert-card">
+        <div className="dashboard__review-alert-left">
+          <div className="dashboard__review-alert-icon">
+            <FileVideo size={22} />
+          </div>
+          <div>
+            <h3 className="dashboard__review-alert-title">
+              All Content Reviewed!
+            </h3>
+            <p className="dashboard__review-alert-sub">
+              0 video drafts need your creative approval • 0 published links awaiting live post verification.
+            </p>
+          </div>
+        </div>
+
+        <Link to="/campaigns/6ace2b3abe742272b6135d8e#deliverables" className="dashboard__review-alert-btn">
+          <span>Review Now</span>
+          <ArrowRight size={15} />
+        </Link>
+      </div>
+
+      {/* 4. Top KPI 4 Cards Grid */}
+      <div className="dashboard__kpi-grid">
+        <div className="dashboard__kpi-card dashboard__kpi-card--purple">
+          <div className="dashboard__kpi-icon">
+            <Sparkles size={18} />
+          </div>
+          <div className="dashboard__kpi-value">{portalCampaigns.length}</div>
+          <div className="dashboard__kpi-label">Total Campaigns</div>
+        </div>
+
+        <div className="dashboard__kpi-card dashboard__kpi-card--green">
+          <div className="dashboard__kpi-icon">
+            <TrendingUp size={18} />
+          </div>
+          <div className="dashboard__kpi-value">{activeCampaigns.length}</div>
+          <div className="dashboard__kpi-label">Active Campaigns</div>
+        </div>
+
+        <div className="dashboard__kpi-card dashboard__kpi-card--amber">
+          <div className="dashboard__kpi-icon">
+            <Clock size={18} />
+          </div>
+          <div className="dashboard__kpi-value">{scheduledCampaigns.length}</div>
+          <div className="dashboard__kpi-label">Scheduled Launches</div>
+        </div>
+
+        <div className="dashboard__kpi-card dashboard__kpi-card--slate">
+          <div className="dashboard__kpi-icon">
+            <CheckCircle2 size={18} />
+          </div>
+          <div className="dashboard__kpi-value">{completedCampaigns.length}</div>
+          <div className="dashboard__kpi-label">Completed</div>
+        </div>
+      </div>
+
+      {/* 5. Media Reach / Deliverables Metric Bar */}
+      <div className="dashboard__perf-bar">
+        <div className="dashboard__perf-col">
+          <div className="dashboard__perf-icon" style={{ color: '#3b82f6', background: '#eff6ff' }}>
+            <FileVideo size={18} />
+          </div>
+          <div>
+            <span className="dashboard__perf-label">LIVE POSTS</span>
+            <span className="dashboard__perf-val">0 Posts</span>
+          </div>
+        </div>
+
+        <div className="dashboard__perf-col">
+          <div className="dashboard__perf-icon" style={{ color: '#10b981', background: '#ecfdf5' }}>
+            <Eye size={18} />
+          </div>
+          <div>
+            <span className="dashboard__perf-label">TOTAL VIEWS</span>
+            <span className="dashboard__perf-val">0</span>
+          </div>
+        </div>
+
+        <div className="dashboard__perf-col">
+          <div className="dashboard__perf-icon" style={{ color: '#6366f1', background: '#eef2ff' }}>
+            <TrendingUp size={18} />
+          </div>
+          <div>
+            <span className="dashboard__perf-label">TOTAL ENGAGEMENTS</span>
+            <span className="dashboard__perf-val">0</span>
+          </div>
+        </div>
+
+        <div className="dashboard__perf-col">
+          <div className="dashboard__perf-icon" style={{ color: '#059669', background: '#ecfdf5' }}>
+            <Sparkles size={18} />
+          </div>
+          <div>
+            <span className="dashboard__perf-label">AVG. ENGAGEMENT RATE</span>
+            <span className="dashboard__perf-val" style={{ color: '#059669' }}>
+              0.0%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Active Brand Campaigns (Single P&G Campaign) */}
+      <div className="dashboard__campaigns-section">
+        <div className="dashboard__campaigns-header">
+          <div>
+            <h2 className="dashboard__campaigns-title">Active Brand Campaigns</h2>
+            <p className="dashboard__campaigns-subtitle">
+              Campaign progress, deliverable pipelines, and verified live posts
+            </p>
+          </div>
+          <Link to="/campaigns" className="dashboard__campaigns-view-all">
+            <span>View all campaigns</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        <div className="dashboard__campaigns-list">
+          {portalCampaigns.map(campaign => (
+            <Link
+              key={campaign.id}
+              to={`/campaigns/${campaign.id}`}
+              className="dashboard__campaign-row-card"
+            >
+              <div className="dashboard__campaign-card-left">
+                <div className="dashboard__campaign-card-icon" style={{ background: '#5b21b6', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', width: '52px', height: '34px', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src={campaign.imageUrl || '/campaign-banner.png'}
+                    alt={campaign.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+                <div>
+                  <div className="dashboard__campaign-card-name">{campaign.name}</div>
+                  <div className="dashboard__campaign-card-meta">
+                    {campaign.compensationType && (
+                      <span className="dashboard__campaign-card-badge">
+                        {campaign.compensationType}
+                      </span>
+                    )}
+                    <span className="dashboard__campaign-card-date">
+                      📅 {formatDate(campaign.startDate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="dashboard__campaign-card-stats">
+                <div className="dashboard__campaign-stat-item">
+                  <span className="dashboard__stat-label">DELIVERABLES</span>
+                  <span className="dashboard__stat-value">{campaign.deliverablesCount || 418}</span>
+                </div>
+                <div className="dashboard__campaign-stat-item">
+                  <span className="dashboard__stat-label">VIEWS</span>
+                  <span className="dashboard__stat-value">0</span>
+                </div>
+                <div className="dashboard__campaign-stat-item">
+                  <span className="dashboard__stat-label">ENGAGEMENT</span>
+                  <span className="dashboard__stat-value">0</span>
+                </div>
+                <div className="dashboard__campaign-card-status">
+                  <span className="dashboard__status-pill">Active</span>
+                </div>
+              </div>
             </Link>
-          </div>
-          <div className="dashboard__campaigns">
-            {portalCampaigns.map(campaign => {
-              const metrics = getCampaignMetrics(campaign.id);
-              return (
-                <Link
-                  key={campaign.id}
-                  to={`/campaigns/${campaign.id}`}
-                  className="dashboard__campaign-row"
-                >
-                  <div className="dashboard__campaign-info">
-                    <div className={`dashboard__campaign-icon ${isBrandConnect ? 'dashboard__campaign-icon--brand' : ''}`}>
-                      {isBrandConnect ? <Sparkles size={16} /> : <Megaphone size={16} />}
-                    </div>
-                    <div>
-                      <div className="dashboard__campaign-name">{campaign.name}</div>
-                      <div className="dashboard__campaign-meta">
-                        {campaign.compensationType && (
-                          <span style={{ background: '#e0e7ff', color: '#4338ca', padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>
-                            {campaign.compensationType}
-                          </span>
-                        )}
-                        {campaign.tags.map(t => (
-                          <span key={t} className="dashboard__campaign-tag">{t}</span>
-                        ))}
-                        <span className="dashboard__campaign-date">📅 {formatDate(campaign.startDate)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="dashboard__campaign-stats">
-                    <div className="dashboard__campaign-metric">
-                      <span className="dashboard__metric-label">{isBrandConnect ? 'DELIVERABLES' : 'CONTENT'}</span>
-                      <span className="dashboard__metric-value">{formatNumber(metrics.contentCount)}</span>
-                    </div>
-                    <div className="dashboard__campaign-metric">
-                      <span className="dashboard__metric-label">{isBrandConnect ? 'REACH' : 'VIEWS'}</span>
-                      <span className="dashboard__metric-value">{formatNumber(metrics.views)}</span>
-                    </div>
-                    <div className="dashboard__campaign-metric">
-                      <span className="dashboard__metric-label">{isBrandConnect ? 'ENGAGEMENT' : 'CLICKS'}</span>
-                      <span className="dashboard__metric-value">{formatNumber(metrics.clicks)}</span>
-                    </div>
-                    <div className="dashboard__campaign-status">
-                      <StatusBadge status={campaign.status} />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          ))}
         </div>
-
-        {/* PRD 8.3 HM-04: Recent Activity Feed */}
-        {isBrandConnect && (
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid var(--hp-border, #e2e8f0)',
-            borderRadius: 12,
-            padding: '20px',
-            boxShadow: 'var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05))',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 16
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: 12 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#0f172a' }}>Recent Activity Feed</h3>
-              <span style={{ fontSize: 11, color: '#64748b' }}>Live Updates</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#d97706', marginTop: 5, flexShrink: 0 }} />
-                <div>
-                  <strong>@aditisharma</strong> submitted reimbursement invoice <strong>INV-2026-AW-0104</strong> for ₹8,398.
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>20 mins ago • 2 receipts attached</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#655bef', marginTop: 5, flexShrink: 0 }} />
-                <div>
-                  <strong>@aditisharma</strong> submitted Reel 1 draft for Autumn/Winter Runway Collab.
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>35 minutes ago • 18h left in SLA</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', marginTop: 5, flexShrink: 0 }} />
-                <div>
-                  <strong>Haulpack Team</strong> verified and approved live Reel by @karanmehta_.
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>2 hours ago • Live on Instagram</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', marginTop: 5, flexShrink: 0 }} />
-                <div>
-                  Barter hamper delivered to <strong>@priyapatel</strong> via BlueDart.
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>4 hours ago • POD Verified</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 5, flexShrink: 0 }} />
-                <div>
-                  <strong>@rahulverma_yt</strong> submitted YouTube Short draft for Gen-Z Streetwear Spotlight.
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>6 hours ago</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

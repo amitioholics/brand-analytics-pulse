@@ -1,473 +1,291 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
 import {
-  FileText,  CheckCircle2, Clock, XCircle, DollarSign,
-  Search, Filter, Download, ExternalLink, ChevronRight,
-  Sparkles, AlertCircle, ShoppingBag, Landmark, ArrowUpRight
+  FileText, CheckCircle2, ChevronRight, Search, ArrowUpDown, Check
 } from 'lucide-react';
 import { useInvoices } from '../context/InvoiceContext';
-import { usePortal } from '../context/PortalContext';
-import { formatCurrency, formatDate } from '../utils/formatters';
-import Breadcrumb from '../components/common/Breadcrumb';
-import SearchBar from '../components/common/SearchBar';
-import FilterDropdown from '../components/common/FilterDropdown';
-import EmptyState from '../components/common/EmptyState';
+import { formatCurrency } from '../utils/formatters';
 import InvoiceDetailModal from '../components/invoices/InvoiceDetailModal';
 import './InvoicesPage.css';
 
 export default function InvoicesPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { portal, isBrandConnect } = usePortal();
   const {
     invoices,
-    pendingCount,
     approvedCount,
-    reimbursedCount,
+    underReviewCount,
+    partiallyApprovedCount,
     rejectedCount,
     totalClaimedAmount,
-    totalPendingAmount,
     totalApprovedAmount,
-    totalReimbursedAmount,
-    INVOICE_STATUSES,
   } = useInvoices();
 
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('status') || 'all');
-  const [campaignFilter, setCampaignFilter] = useState(() => searchParams.get('campaign') || 'all');
-
-  // Sync with searchParams if changed
-  useEffect(() => {
-    const qStatus = searchParams.get('status');
-    if (qStatus && qStatus !== statusFilter) {
-      setStatusFilter(qStatus);
-    }
-  }, [searchParams]);
-
-  // Unique campaigns from invoices
-  const campaignOptions = useMemo(() => {
-    const map = new Map();
-    invoices.forEach(inv => map.set(inv.campaignId, inv.campaignName));
-    return [
-      { value: 'all', label: 'All Campaigns' },
-      ...Array.from(map.entries()).map(([id, name]) => ({ value: id, label: name })),
-    ];
-  }, [invoices]);
+  const [statusTab, setStatusTab] = useState('approved'); // 'approved', 'under_review', 'partially_approved', 'rejected'
+  const [sortField, setSortField] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
     return invoices.filter(inv => {
-      // Status
-      if ((statusFilter === 'pending' || statusFilter === 'under_review') && inv.status !== INVOICE_STATUSES.UNDER_REVIEW && inv.status !== 'Pending Verification') return false;
-      if (statusFilter === 'approved' && inv.status !== INVOICE_STATUSES.APPROVED && inv.status !== INVOICE_STATUSES.VERIFIED && inv.status !== 'Reimbursed') return false;
-      if (statusFilter === 'rejected' && inv.status !== INVOICE_STATUSES.REJECTED) return false;
-
-      // Campaign
-      if (campaignFilter !== 'all' && inv.campaignId !== campaignFilter) return false;
+      // Status tab
+      if (statusTab === 'approved' && inv.status !== 'Approved' && inv.status !== 'Verified') return false;
+      if (statusTab === 'under_review' && inv.status !== 'Under Review' && inv.status !== 'Pending Verification') return false;
+      if (statusTab === 'partially_approved' && inv.status !== 'Partially Approved') return false;
+      if (statusTab === 'rejected' && inv.status !== 'Rejected') return false;
 
       // Search by creator name, order ID, invoice number
-      if (search) {
+      if (search.trim()) {
         const q = search.toLowerCase().trim();
-        const cleanQ = q.replace(/^#/, '').replace(/^order\s*#?/i, '').replace(/^inv-?/i, '').trim();
-
         return (
           inv.creatorName?.toLowerCase().includes(q) ||
           inv.creatorHandle?.toLowerCase().includes(q) ||
           inv.invoiceNumber?.toLowerCase().includes(q) ||
-          (cleanQ && inv.invoiceNumber?.toLowerCase().includes(cleanQ)) ||
           inv.primaryOrderId?.toLowerCase().includes(q) ||
-          (cleanQ && inv.primaryOrderId?.toLowerCase().includes(cleanQ)) ||
           inv.campaignName?.toLowerCase().includes(q) ||
           (inv.orders && inv.orders.some(o =>
             o.orderId?.toLowerCase().includes(q) ||
-            (cleanQ && o.orderId?.toLowerCase().includes(cleanQ)) ||
-            o.invoiceNumber?.toLowerCase().includes(q) ||
-            (cleanQ && o.invoiceNumber?.toLowerCase().includes(cleanQ)) ||
-            o.productName?.toLowerCase().includes(q)
+            o.invoiceNumber?.toLowerCase().includes(q)
           ))
         );
       }
 
       return true;
-    });
-  }, [invoices, statusFilter, campaignFilter, search, INVOICE_STATUSES]);
-
-  const getStatusBadge = (invoice) => {
-    const status = typeof invoice === 'string' ? invoice : invoice?.status;
-    const orders = typeof invoice === 'object' && invoice?.orders ? invoice.orders : [];
-    const totalOrders = orders.length || invoice?.ordersCount || 1;
-
-    const approvedCount = orders.filter(o =>
-      o.status === INVOICE_STATUSES.APPROVED || o.status === 'Approved' || o.status === 'Verified' || o.status === 'Reimbursed'
-    ).length;
-    const rejectedCount = orders.filter(o =>
-      o.status === INVOICE_STATUSES.REJECTED || o.status === 'Rejected'
-    ).length;
-    const pendingCount = orders.filter(o =>
-      o.status === INVOICE_STATUSES.UNDER_REVIEW || o.status === 'Under Review' || o.status === 'Pending Verification' || !o.status
-    ).length;
-
-    const isPartiallyApproved = status === INVOICE_STATUSES.PARTIALLY_APPROVED ||
-      status === 'Partially Approved' ||
-      (approvedCount > 0 && (rejectedCount > 0 || pendingCount > 0));
-
-    const isApproved = !isPartiallyApproved && (
-      status === INVOICE_STATUSES.APPROVED ||
-      status === 'Approved' ||
-      status === INVOICE_STATUSES.VERIFIED ||
-      status === 'Reimbursed'
-    );
-
-    const isRejected = !isPartiallyApproved && (
-      status === INVOICE_STATUSES.REJECTED ||
-      status === 'Rejected'
-    );
-
-    if (isPartiallyApproved) {
-      let subtext = `${approvedCount} approved · ${rejectedCount > 0 ? `${rejectedCount} rejected` : `${pendingCount} pending`}`;
-      if (rejectedCount > 0 && pendingCount > 0) {
-        subtext = `${approvedCount} approved · ${rejectedCount} rejected`;
+    }).sort((a, b) => {
+      let valA = a.creatorName || '';
+      let valB = b.creatorName || '';
+      if (sortField === 'amount') {
+        valA = a.totalAmount || a.totalOrderAmount || 0;
+        valB = b.totalAmount || b.totalOrderAmount || 0;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
       }
-      return {
-        bg: '#f3e8ff',
-        color: '#7c3aed',
-        border: '#ddd6fe',
-        label: 'Partially Approved',
-        icon: CheckCircle2,
-        subtext,
-      };
-    }
+      return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    });
+  }, [invoices, statusTab, search, sortField, sortDir]);
 
-    if (isApproved) {
-      const displayApproved = approvedCount || totalOrders;
-      return {
-        bg: '#eef2ff',
-        color: '#4f46e5',
-        border: '#c7d2fe',
-        label: 'Approved',
-        icon: CheckCircle2,
-        subtext: `${displayApproved} of ${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'} approved`,
-      };
-    }
-
-    if (isRejected) {
-      const displayRejected = rejectedCount || totalOrders;
-      return {
-        bg: '#fef2f2',
-        color: '#dc2626',
-        border: '#fecaca',
-        label: 'Rejected',
-        icon: XCircle,
-        subtext: `${displayRejected} of ${totalOrders} ${totalOrders === 1 ? 'order' : 'orders'} rejected`,
-      };
-    }
-
-    return {
-      bg: '#fef3c7',
-      color: '#b45309',
-      border: '#fde68a',
-      label: 'Under Review',
-      icon: Clock,
-      subtext: `0 approved · ${totalOrders} pending`,
-    };
-  };
-
-  const handleStatusTab = (tab) => {
-    setStatusFilter(tab);
-    if (tab === 'all') {
-      searchParams.delete('status');
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     } else {
-      searchParams.set('status', tab);
+      setSortField(field);
+      setSortDir('asc');
     }
-    setSearchParams(searchParams);
   };
 
   return (
     <div className="invoices-page fade-in">
-      <Breadcrumb
-        items={[
-          { label: isBrandConnect ? 'Brand Connect' : 'Reward Program', to: '/' },
-          { label: 'Invoices & Reimbursements' },
-        ]}
-      />
-
-      {/* Page Header */}
+      {/* 1. Header with Badge, Title, Subtitle */}
       <div className="invoices-page__header">
-        <div>
-          <div className="invoices-page__badge">
-            <FileText size={14} />
-            <span>Creator Reimbursements & Invoice Verification</span>
-          </div>
-          <h1 className="invoices-page__title">Creator Reimbursement Invoices</h1>
+        <div className="invoices-page__badge">
+          <FileText size={13} />
+          <span>Creator Reimbursements & Invoice Verification</span>
         </div>
+        <h1 className="invoices-page__title">Creator Reimbursement Invoices</h1>
+        <p className="invoices-page__subtitle">
+          Review creator purchase invoices for your campaigns and approve them for payout.
+        </p>
       </div>
 
-      {/* KPI Cards Row */}
+      {/* 2. Top 2 KPI Cards */}
       <div className="invoices-page__kpis">
         {/* Total Claimed */}
         <div className="invoices-page__kpi-card">
           <div className="invoices-page__kpi-top">
-            <span className="invoices-page__kpi-label">TOTAL CLAIMED</span>
-            <div className="invoices-page__kpi-icon" style={{ background: '#f2edfc', color: '#6538ea' }}>
-              <FileText size={18} />
+            <div className="invoices-page__kpi-icon invoices-page__kpi-icon--purple">
+              <FileText size={15} />
             </div>
+            <span className="invoices-page__kpi-label">TOTAL CLAIMED</span>
           </div>
           <div className="invoices-page__kpi-value">{formatCurrency(totalClaimedAmount)}</div>
           <div className="invoices-page__kpi-sub">
-            <span>{invoices.length} total invoices submitted</span>
-          </div>
-        </div>
-
-        {/* Under Review */}
-        <div className="invoices-page__kpi-card" style={{ borderColor: pendingCount > 0 ? '#fde68a' : undefined }}>
-          <div className="invoices-page__kpi-top">
-            <span className="invoices-page__kpi-label" style={{ color: '#b45309' }}>UNDER REVIEW</span>
-            <div className="invoices-page__kpi-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
-              <Clock size={18} />
-            </div>
-          </div>
-          <div className="invoices-page__kpi-value" style={{ color: '#d97706' }}>
-            {formatCurrency(totalPendingAmount)}
-          </div>
-          <div className="invoices-page__kpi-sub">
-            <span style={{ fontWeight: 700, color: '#b45309' }}>{pendingCount} claims</span>
-            <span>awaiting brand verification</span>
+            {invoices.length} invoices submitted
           </div>
         </div>
 
         {/* Approved for Payout */}
-        <div className="invoices-page__kpi-card">
+        <div className="invoices-page__kpi-card invoices-page__kpi-card--approved">
           <div className="invoices-page__kpi-top">
-            <span className="invoices-page__kpi-label">APPROVED FOR PAYOUT</span>
-            <div className="invoices-page__kpi-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
-              <CheckCircle2 size={18} />
+            <div className="invoices-page__kpi-icon invoices-page__kpi-icon--green">
+              <CheckCircle2 size={15} />
             </div>
+            <span className="invoices-page__kpi-label">APPROVED FOR PAYOUT</span>
           </div>
           <div className="invoices-page__kpi-value">{formatCurrency(totalApprovedAmount)}</div>
           <div className="invoices-page__kpi-sub">
-            <span>{approvedCount} verified by brand operations</span>
+            {approvedCount} verified by brand
           </div>
         </div>
       </div>
 
-      {/* Filter and Control Bar */}
+      {/* 3. Controls: Status Pills (Approved, Under Review, Partially Approved, Rejected) + Search */}
       <div className="invoices-page__controls">
-        {/* Status Tabs */}
-        <div className="invoices-page__status-tabs">
+        <div className="invoices-page__status-pills">
           <button
             type="button"
-            className={`invoices-page__tab-btn ${statusFilter === 'all' ? 'invoices-page__tab-btn--active' : ''}`}
-            onClick={() => handleStatusTab('all')}
+            className={`invoices-page__pill-btn ${statusTab === 'approved' ? 'invoices-page__pill-btn--active' : ''}`}
+            onClick={() => setStatusTab('approved')}
           >
-            <span>All Invoices</span>
-            <span className="invoices-page__tab-badge">{invoices.length}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`invoices-page__tab-btn ${statusFilter === 'under_review' || statusFilter === 'pending' ? 'invoices-page__tab-btn--active' : ''}`}
-            onClick={() => handleStatusTab('under_review')}
-          >
-            <Clock size={14} color="#d97706" />
-            <span>Under Review</span>
-            <span
-              className="invoices-page__tab-badge"
-              style={{
-                background: pendingCount > 0 ? '#fef3c7' : undefined,
-                color: pendingCount > 0 ? '#92400e' : undefined,
-              }}
-            >
-              {pendingCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={`invoices-page__tab-btn ${statusFilter === 'approved' ? 'invoices-page__tab-btn--active' : ''}`}
-            onClick={() => handleStatusTab('approved')}
-          >
-            <CheckCircle2 size={14} color="#4f46e5" />
             <span>Approved</span>
-            <span className="invoices-page__tab-badge">{approvedCount}</span>
+            <span className="invoices-page__pill-count">{approvedCount}</span>
           </button>
-
           <button
             type="button"
-            className={`invoices-page__tab-btn ${statusFilter === 'rejected' ? 'invoices-page__tab-btn--active' : ''}`}
-            onClick={() => handleStatusTab('rejected')}
+            className={`invoices-page__pill-btn ${statusTab === 'under_review' ? 'invoices-page__pill-btn--active' : ''}`}
+            onClick={() => setStatusTab('under_review')}
           >
-            <XCircle size={14} color="#dc2626" />
+            <span>Under Review</span>
+            <span className="invoices-page__pill-count">{underReviewCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`invoices-page__pill-btn ${statusTab === 'partially_approved' ? 'invoices-page__pill-btn--active' : ''}`}
+            onClick={() => setStatusTab('partially_approved')}
+          >
+            <span>Partially Approved</span>
+            <span className="invoices-page__pill-count">{partiallyApprovedCount}</span>
+          </button>
+          <button
+            type="button"
+            className={`invoices-page__pill-btn ${statusTab === 'rejected' ? 'invoices-page__pill-btn--active' : ''}`}
+            onClick={() => setStatusTab('rejected')}
+          >
             <span>Rejected</span>
-            <span className="invoices-page__tab-badge">{rejectedCount}</span>
+            <span className="invoices-page__pill-count">{rejectedCount}</span>
           </button>
         </div>
 
-        {/* Search & Dropdown Filters */}
-        <div className="invoices-page__filter-row">
-          <div className="invoices-page__search-wrap">
-            <SearchBar
-              value={search}
-              onSearch={setSearch}
-              onChange={setSearch}
-              placeholder="Search by creator name, order ID, invoice number..."
-            />
-          </div>
-
-          <div className="invoices-page__filter-actions">
-            <FilterDropdown
-              value={campaignFilter}
-              onChange={setCampaignFilter}
-              options={campaignOptions}
-            />
-          </div>
+        <div className="invoices-page__search-box">
+          <Search size={14} className="invoices-page__search-icon" />
+          <input
+            type="text"
+            placeholder="Search by creator name, order ID, invoice"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="invoices-page__search-input"
+          />
         </div>
       </div>
 
-      {/* Invoices Data Table */}
-      {filteredInvoices.length === 0 ? (
-        <EmptyState
-          message="No invoices found matching your active filter criteria."
-          onClear={() => {
-            setSearch('');
-            setStatusFilter('all');
-            setCampaignFilter('all');
-          }}
-        />
-      ) : (
-        <div className="invoices-page__table-card">
-          <table className="invoices-table">
-            <thead>
+      {/* 4. Table */}
+      <div className="invoices-page__table-card">
+        <table className="invoices-table">
+          <thead>
+            <tr>
+              <th onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
+                <div className="invoices-table__th-wrap">
+                  <span>CREATOR</span>
+                  <ArrowUpDown size={12} />
+                </div>
+              </th>
+              <th>
+                <div className="invoices-table__th-wrap">
+                  <span>CAMPAIGN</span>
+                  <ArrowUpDown size={12} />
+                </div>
+              </th>
+              <th onClick={() => handleSort('amount')} style={{ cursor: 'pointer', textAlign: 'right' }}>
+                <div className="invoices-table__th-wrap" style={{ justifyContent: 'flex-end' }}>
+                  <span>CLAIMED AMOUNT</span>
+                  <ArrowUpDown size={12} />
+                </div>
+              </th>
+              <th style={{ textAlign: 'right' }}>
+                <div className="invoices-table__th-wrap" style={{ justifyContent: 'flex-end' }}>
+                  <span>INVOICES</span>
+                  <ArrowUpDown size={12} />
+                </div>
+              </th>
+              <th style={{ textAlign: 'right' }}>
+                <div className="invoices-table__th-wrap" style={{ justifyContent: 'flex-end' }}>
+                  <span>STATUS</span>
+                  <ArrowUpDown size={12} />
+                </div>
+              </th>
+              <th style={{ width: 30 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredInvoices.length === 0 ? (
               <tr>
-                <th style={{ width: '26%' }}>CREATOR</th>
-                <th style={{ width: '26%' }}>CAMPAIGN</th>
-                <th style={{ width: '15%' }}>CLAIMED AMOUNT</th>
-                <th style={{ width: '12%' }}>INVOICES</th>
-                <th style={{ width: '17%' }}>STATUS</th>
-                <th style={{ width: '4%', textAlign: 'right' }}></th>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                  No reimbursement claims found.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.map(invoice => {
-                const badge = getStatusBadge(invoice);
-                const BadgeIcon = badge.icon;
-
-                return (
-                  <tr
-                    key={invoice.id}
-                    onClick={() => setSelectedInvoice(invoice)}
-                  >
-                    {/* Creator */}
-                    <td>
-                      <div className="invoices-table__creator-cell">
-                        <div
-                          className="invoices-table__avatar"
-                          style={{ background: invoice.creatorAvatarColor || 'var(--hp-primary, #6538ea)' }}
-                        >
-                          {invoice.creatorName.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="invoices-table__creator-name">{invoice.creatorName}</div>
-                          <div className="invoices-table__creator-handle">
-                            <span>{invoice.creatorHandle}</span>
-                            <span
-                              style={{
-                                background: '#f1f5f9',
-                                color: '#475569',
-                                padding: '1px 5px',
-                                borderRadius: 4,
-                                fontSize: 10,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {invoice.creatorPlatform}
-                            </span>
-                          </div>
+            ) : (
+              filteredInvoices.map((inv) => (
+                <tr
+                  key={inv.id}
+                  className="invoices-table__row"
+                  onClick={() => setSelectedInvoice(inv)}
+                >
+                  {/* Creator */}
+                  <td>
+                    <div className="invoices-table__creator-cell">
+                      <img
+                        src={inv.creatorAvatarUrl || '/creators/thehopestory.png'}
+                        alt={inv.creatorName}
+                        className="invoices-table__avatar-img"
+                      />
+                      <div className="invoices-table__creator-meta">
+                        <div className="invoices-table__creator-name">{inv.creatorName}</div>
+                        <div className="invoices-table__creator-sub">
+                          <span className="invoices-table__handle">{inv.creatorHandle}</span>
+                          <span className="invoices-table__platform-pill">{inv.creatorPlatform || 'Instagram'}</span>
                         </div>
                       </div>
-                    </td>
+                    </div>
+                  </td>
 
-                    {/* Campaign */}
-                    <td>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#0f172a', fontSize: 13 }}>
-                          {invoice.campaignName}
-                        </div>
-                      </div>
-                    </td>
+                  {/* Campaign */}
+                  <td>
+                    <div className="invoices-table__campaign-name">
+                      {inv.campaignName}
+                    </div>
+                  </td>
 
-                    {/* Amount */}
-                    <td>
-                      <div className="invoices-table__amount-cell">
-                        <span className="invoices-table__amount-val">
-                          {formatCurrency(invoice.totalOrderAmount || invoice.totalAmount)}
-                        </span>
-                      </div>
-                    </td>
+                  {/* Claimed Amount */}
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="invoices-table__amount">
+                      {formatCurrency(inv.totalOrderAmount || inv.totalAmount || 503)}
+                    </div>
+                  </td>
 
+                  {/* Invoices */}
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="invoices-table__invoices-count">
+                      <FileText size={13} color="#64748b" />
+                      <span>{inv.orders?.length || 1} invoice</span>
+                    </div>
+                  </td>
 
-
-                    {/* Invoices / Attachments */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#475569' }}>
-                        <FileText size={14} color="var(--hp-primary, #6538ea)" />
-                        <span style={{ fontWeight: 600 }}>
-                          {(() => {
-                            const count = invoice.orders?.length || invoice.ordersCount || invoice.attachments?.length || 1;
-                            return `${count} ${count === 1 ? 'invoice' : 'invoices'}`;
-                          })()}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Status */}
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-                        <span
-                          style={{
-                            background: badge.bg,
-                            color: badge.color,
-                            border: `1px solid ${badge.border}`,
-                            padding: '3px 9px',
-                            borderRadius: '12px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                          }}
-                        >
-                          <BadgeIcon size={12} />
-                          <span>{badge.label}</span>
-                        </span>
-                        <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                          {badge.subtext}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Arrow */}
-                    <td style={{ textAlign: 'right', paddingRight: '16px' }}>
-                      <span className="invoices-table__arrow">
-                        <ChevronRight size={18} />
+                  {/* Status */}
+                  <td style={{ textAlign: 'right' }}>
+                    <div className="invoices-table__status-wrap">
+                      <span className="invoices-table__status-pill">
+                        <Check size={12} strokeWidth={2.5} />
+                        <span>Approved</span>
                       </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      <span className="invoices-table__status-sub">
+                        1 of 1 order approved
+                      </span>
+                    </div>
+                  </td>
 
-      {/* Invoice Detail & Verification Modal */}
+                  {/* Arrow */}
+                  <td style={{ textAlign: 'right', paddingRight: '16px' }}>
+                    <ChevronRight size={16} className="invoices-table__chevron" />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Reimbursement Claim Modal */}
       {selectedInvoice && (
         <InvoiceDetailModal
           invoice={selectedInvoice}
           onClose={() => setSelectedInvoice(null)}
-          onRefresh={() => {
-            const updated = invoices.find(inv => inv.id === selectedInvoice.id);
-            if (updated) setSelectedInvoice(updated);
-          }}
         />
       )}
     </div>

@@ -80,7 +80,7 @@ export default function TeamSettings() {
           </div>
           <h1 className="team-settings__title">Team Members & Permissions</h1>
           <p className="team-settings__sub">
-            Manage who can access the Myntra Brand Connect portal, review creator deliverables, and view campaign analytics.
+            Manage who can access the P&G Brand Connect portal, review creator deliverables, and view campaign analytics.
           </p>
         </div>
 
@@ -266,7 +266,7 @@ export default function TeamSettings() {
                 <label>Work Email</label>
                 <input
                   type="email"
-                  placeholder="e.g. priyanshu@myntra.com"
+                  placeholder="e.g. priyanshu@pg.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   required

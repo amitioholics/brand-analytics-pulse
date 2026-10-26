@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { PortalProvider } from './context/PortalContext';
 import { DeliverablesProvider } from './context/DeliverablesContext';
@@ -31,11 +31,11 @@ export default function App() {
                   <Route path="/campaigns" element={<CampaignList />} />
                   <Route path="/campaigns/:campaignId" element={<CampaignDashboard />} />
                   <Route path="/campaigns/:campaignId/creators/:creatorId" element={<CreatorDetail />} />
-                  <Route path="/creators" element={<Creators />} />
+                  <Route path="/creators" element={<Navigate to="/campaigns" replace />} />
                   <Route path="/creators/:creatorId" element={<CreatorProfilePage />} />
                   <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/approvals" element={<VideoApprovals />} />
-                  <Route path="/invoices" element={<InvoicesPage />} />
+                  <Route path="/approvals" element={<Navigate to="/campaigns/6ace2b3abe742272b6135d8e#deliverables" replace />} />
+                  <Route path="/invoices" element={<Navigate to="/campaigns/6ace2b3abe742272b6135d8e#reimbursements" replace />} />
                   <Route path="/settings" element={<TeamSettings />} />
                   <Route path="/settings/team" element={<TeamSettings />} />
                 </Route>

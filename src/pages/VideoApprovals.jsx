@@ -11,6 +11,7 @@ import Breadcrumb from '../components/common/Breadcrumb';
 import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
 import VideoReviewModal from '../components/video/VideoReviewModal';
+import PGLogo from '../components/common/PGLogo';
 import './VideoApprovals.css';
 
 function PlatformIcon({ platform, size = 13 }) {
@@ -115,7 +116,7 @@ export default function VideoApprovals() {
           </div>
           <div className="approvals-page__kpi-content">
             <span className="approvals-page__kpi-val" style={{ color: '#b45309' }}>{pendingDraftsCount}</span>
-            <span className="approvals-page__kpi-label">Stage 1: Drafts to Review</span>
+            <span className="approvals-page__kpi-label">Stage 1: Raw Videos to Review</span>
           </div>
         </div>
 
@@ -176,7 +177,7 @@ export default function VideoApprovals() {
           className={`stage-tab ${stageFilter === 'draft_review' ? 'active' : ''}`}
           onClick={() => setStageFilter('draft_review')}
         >
-          1. Draft QA Pending ({pendingDraftsCount})
+          1. Raw Videos to Review ({pendingDraftsCount})
         </button>
         <button
           type="button"
@@ -190,7 +191,7 @@ export default function VideoApprovals() {
           className={`stage-tab ${stageFilter === 'final_review' ? 'active' : ''}`}
           onClick={() => setStageFilter('final_review')}
         >
-          3. Live Posts Pending ({pendingLivePostsCount})
+          3. Live Posts to Review ({pendingLivePostsCount})
         </button>
         <button
           type="button"
@@ -211,7 +212,7 @@ export default function VideoApprovals() {
       {/* Toolbar Filters */}
       <div className="approvals-page__toolbar">
         <SearchBar
-          placeholder="Search creator name, @handle, video title, or live link..."
+          placeholder="Search creator name, @handle..."
           onSearch={(v) => setSearch(v)}
         />
         <div className="approvals-page__filter-group">
@@ -234,236 +235,110 @@ export default function VideoApprovals() {
       ) : (
         <div className="approvals-page__grid">
           {filteredSubmissions.map((sub) => {
-            const isDraftPending = sub.stage === 'draft_review';
-            const isFinalPending = sub.stage === 'final_review';
-            const isApproved = sub.stage === 'live_approved' || sub.stage === 'payment_approved';
-            const isAwaitingLive = sub.stage === 'awaiting_live_link';
-            const isRejected = sub.stage === 'draft_rejected' || sub.stage === 'live_rejected';
+            const initials = sub.creatorName
+              ? sub.creatorName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+              : 'CR';
 
             return (
               <div
                 key={sub.id}
-                className={`approval-card approval-card--${sub.stage}`}
+                className="approval-card"
                 onClick={() => {
                   setSelectedSubmission(sub);
                   setModalRejectMode(false);
                 }}
               >
-                {/* Media Preview Box */}
-                <div className="approval-card__preview">
-                  <video
-                    src={sub.videoUrl}
-                    className="approval-card__video-thumb"
-                    muted
-                    playsInline
-                    preload="metadata"
-                  />
-                  <div className="approval-card__play-badge">
-                    <Play size={18} fill="#ffffff" />
+                {/* Media Preview Box (Dark with pink camera matching Screenshot 2) */}
+                <div className="approval-card__preview approval-card__preview--dark">
+                  <div className="approval-card__dark-center">
+                    <Camera size={32} color="#f43f5e" strokeWidth={1.8} />
+                    <div className="approval-card__dark-open-row">
+                      <span>{sub.livePostUrl ? 'View Live' : 'Open'}</span>
+                      <ExternalLink size={12} color="#ffffff" />
+                    </div>
                   </div>
-                  <span className="approval-card__duration-badge">{sub.duration}</span>
-                  <span className="approval-card__format-badge">{sub.deliverableType}</span>
+                  <span className="approval-card__format-badge">
+                    {sub.deliverableType || 'Raw Video'}
+                  </span>
                 </div>
 
                 {/* Card Body */}
                 <div className="approval-card__body">
                   {/* Campaign name + Deliverable Tag */}
                   <div className="approval-card__meta-top">
-                    <span className="approval-card__campaign-name" title={sub.campaignName}>
-                      {sub.campaignName}
+                    <span className="approval-card__campaign-name" title={sub.campaignName} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <PGLogo size={14} />
+                      <span>{(sub.campaignName || 'HAULPACK X AMAZON HEAD & SHOULDERS').toUpperCase()}</span>
                     </span>
                     <span className="approval-card__format-tag">
-                      {sub.deliverableType}
+                      {sub.deliverableType || 'Raw Video'}
                     </span>
                   </div>
 
                   {/* Stage Pill */}
                   <div className="approval-card__stage-pill-row">
-                    <span className={`stage-status-pill stage-status-pill--${sub.stage}`}>
-                      {isDraftPending && <Clock size={11} />}
-                      {isFinalPending && <Sparkles size={11} />}
-                      {isApproved && <CheckCircle2 size={11} />}
-                      {isAwaitingLive && <Send size={11} />}
-                      {isRejected && <ShieldAlert size={11} />}
-                      <span>{sub.status}</span>
-                    </span>
+                    {sub.stage === 'draft_review' && (
+                      <span className="approval-card__status-badge-amber">
+                        <Clock size={11} />
+                        <span>{sub.status || 'Raw Video Pending Review'}</span>
+                      </span>
+                    )}
+                    {sub.stage === 'awaiting_live_link' && (
+                      <span className="approval-card__status-badge-purple">
+                        <Clock size={11} />
+                        <span>{sub.status || 'Awaiting Live Link'}</span>
+                      </span>
+                    )}
+                    {sub.stage === 'final_review' && (
+                      <span className="approval-card__status-badge-fuchsia">
+                        <Sparkles size={11} />
+                        <span>{sub.status || 'Live Post Pending Review'}</span>
+                      </span>
+                    )}
+                    {(sub.stage === 'live_approved' || sub.stage === 'payment_approved') && (
+                      <span className="approval-card__status-badge-green">
+                        <CheckCircle2 size={11} />
+                        <span>{sub.status || 'Live Post Approved'}</span>
+                      </span>
+                    )}
+                    {(sub.stage === 'draft_rejected' || sub.stage === 'live_rejected') && (
+                      <span className="approval-card__status-badge-red">
+                        <ShieldAlert size={11} />
+                        <span>{sub.status || 'Revision Requested'}</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Video Title */}
-                  <h3 className="approval-card__title">{sub.videoTitle}</h3>
+                  <h3 className="approval-card__title">{sub.videoTitle || 'Raw Video'}</h3>
 
                   {/* Creator Header */}
                   <div className="approval-card__creator">
-                    <div
-                      className="approval-card__avatar"
-                      style={{ background: sub.creatorAvatarColor || 'var(--hp-primary)' }}
-                    >
-                      {sub.creatorName.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="approval-card__creator-info">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        className="approval-card__avatar"
+                        style={{ background: sub.creatorAvatarColor || '#ec4899' }}
+                      >
+                        {initials}
+                      </div>
                       <span className="approval-card__creator-name">{sub.creatorName}</span>
-                      <span className="approval-card__creator-handle">{sub.creatorHandle} • {sub.creatorPlatform}</span>
                     </div>
                     <span className="approval-card__date">{formatDate(sub.submittedAt)}</span>
                   </div>
 
-                  {/* Live Link Preview if submitted */}
-                  {sub.livePostUrl && (
-                    <div className="approval-card__live-link-box" onClick={(e) => e.stopPropagation()}>
-                      <div className="approval-card__live-link-header">
-                        <PlatformIcon platform={sub.livePlatform} size={13} />
-                        <span>Live Post URL:</span>
-                      </div>
-                      <a
-                        href={sub.livePostUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="approval-card__live-link"
-                        title={sub.livePostUrl}
-                      >
-                        <span>{sub.livePostUrl}</span>
-                        <ExternalLink size={11} />
-                      </a>
-                    </div>
-                  )}
-
-                  {/* Rejection Alert Box */}
-                  {isRejected && (
-                    <div className="approval-card__rejected-box">
-                      <ShieldAlert size={14} color="#ef4444" />
-                      <div>
-                        <strong>{sub.stage === 'draft_rejected' ? 'Draft Rejection:' : 'Live Post Rejection:'}</strong>
-                        <span> {sub.draftRejectionReason || sub.liveRejectionReason}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Approved Success Box */}
-                  {isApproved && (
-                    <div className="approval-card__approved-box">
-                      <CheckCircle2 size={14} color="#059669" />
-                      <div>
-                        <strong>Live Post Approved</strong>
-                        <span> — Verified & approved by admin</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Awaiting Live Callout */}
-                  {isAwaitingLive && (
-                    <div className="approval-card__awaiting-box">
-                      <Send size={14} color="#0284c7" />
-                      <span>Draft approved! Waiting for creator to share live Reel/YouTube URL.</span>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
+                  {/* Action Buttons (Single clean Review button matching deployed Screenshot 2) */}
                   <div className="approval-card__actions" onClick={(e) => e.stopPropagation()}>
-                    {/* Stage 1 Pending Action */}
-                    {isDraftPending && (
-                      <>
-                        <button
-                          type="button"
-                          className="approval-card__review-btn"
-                          onClick={() => {
-                            setSelectedSubmission(sub);
-                            setModalRejectMode(false);
-                          }}
-                        >
-                          <Eye size={13} />
-                          <span>Review Draft</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="approval-card__quick-approve-btn"
-                          onClick={() => approveDraft(sub.id, 'Draft approved via QA Studio.')}
-                          title="Quick Approve Draft"
-                        >
-                          <Check size={14} />
-                          <span>Approve</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="approval-card__quick-reject-btn"
-                          onClick={() => {
-                            setSelectedSubmission(sub);
-                            setModalRejectMode(true);
-                          }}
-                          title="Reject Draft with Reason"
-                        >
-                          <XCircle size={14} />
-                          <span>Reject</span>
-                        </button>
-                      </>
-                    )}
-
-                    {/* Stage 2 Live Post Review Action */}
-                    {isFinalPending && (
-                      <>
-                        <button
-                          type="button"
-                          className="approval-card__verify-pay-btn"
-                          onClick={() => {
-                            setSelectedSubmission(sub);
-                            setModalRejectMode(false);
-                          }}
-                        >
-                          <Sparkles size={13} />
-                          <span>Review Live Post</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="approval-card__quick-approve-btn"
-                          onClick={() => approveLivePost(sub.id, 'Live post verified and approved.')}
-                          title="Approve Live Post"
-                        >
-                          <CheckCircle2 size={14} />
-                          <span>Approve</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="approval-card__quick-reject-btn"
-                          onClick={() => {
-                            setSelectedSubmission(sub);
-                            setModalRejectMode(true);
-                          }}
-                          title="Reject Live Post with Reason"
-                        >
-                          <XCircle size={14} />
-                          <span>Reject</span>
-                        </button>
-                      </>
-                    )}
-
-                    {/* Awaiting Live Link Action (Creator uploads from their end) */}
-                    {isAwaitingLive && (
-                      <button
-                        type="button"
-                        className="approval-card__review-btn approval-card__review-btn--secondary"
-                        onClick={() => {
-                          setSelectedSubmission(sub);
-                          setModalRejectMode(false);
-                        }}
-                      >
-                        <Eye size={13} />
-                        <span>View Draft Details</span>
-                      </button>
-                    )}
-
-                    {/* Already Approved or Rejected */}
-                    {(isApproved || isRejected) && (
-                      <button
-                        type="button"
-                        className="approval-card__review-btn approval-card__review-btn--secondary"
-                        onClick={() => {
-                          setSelectedSubmission(sub);
-                          setModalRejectMode(false);
-                        }}
-                      >
-                        <Eye size={13} />
-                        <span>View Details</span>
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="approval-card__review-btn-deployed"
+                      onClick={() => {
+                        setSelectedSubmission(sub);
+                        setModalRejectMode(false);
+                      }}
+                    >
+                      <Eye size={14} />
+                      <span>Review</span>
+                    </button>
                   </div>
                 </div>
               </div>

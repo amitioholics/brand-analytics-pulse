@@ -5,45 +5,22 @@ const InvoiceContext = createContext(null);
 
 export function InvoiceProvider({ children }) {
   const [invoices, setInvoices] = useState(() => {
-    const saved = localStorage.getItem('hp_creator_invoices_v5');
+    const saved = localStorage.getItem('hp_creator_invoices_v8');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= INITIAL_INVOICES.length) {
-          return parsed.map(inv => {
-            const isUnderReview = inv.status === 'Under Review' || inv.status === INVOICE_STATUSES.UNDER_REVIEW;
-            return {
-              ...inv,
-              status: inv.status === 'Reimbursed' ? INVOICE_STATUSES.APPROVED : inv.status,
-              orders: (inv.orders || []).map((ord, idx) => ({
-                ...ord,
-                productName: ord.productName?.startsWith('Product') ? ord.productName : `Product ${ord.orderIndex || idx + 1}`,
-                status: isUnderReview
-                  ? INVOICE_STATUSES.UNDER_REVIEW
-                  : ord.status === 'Reimbursed'
-                  ? INVOICE_STATUSES.APPROVED
-                  : ord.status,
-                rejectionReason: isUnderReview ? null : ord.rejectionReason,
-              })),
-            };
-          });
+          return parsed;
         }
       } catch {
         return INITIAL_INVOICES;
       }
     }
-    try {
-      localStorage.removeItem('hp_creator_invoices_v4');
-      localStorage.removeItem('hp_creator_invoices_v3');
-      localStorage.removeItem('hp_creator_invoices_v2');
-    } catch {
-      // ignore
-    }
     return INITIAL_INVOICES;
   });
 
   useEffect(() => {
-    localStorage.setItem('hp_creator_invoices_v5', JSON.stringify(invoices));
+    localStorage.setItem('hp_creator_invoices_v8', JSON.stringify(invoices));
   }, [invoices]);
 
   // Action: Verify / Approve Invoice
@@ -199,7 +176,7 @@ export function InvoiceProvider({ children }) {
         productSubtitle: '',
         productImage: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=500&auto=format&fit=crop&q=80',
         invoicePdf: {
-          name: 'Myntra_Invoice_0012344556.pdf',
+          name: 'PG_Invoice_0012344556.pdf',
           fileSize: '2.4 MB',
           uploadDate: '2026-09-12',
           previewUrl: 'https://images.unsplash.com/photo-1554415707-9e49666ffb24?w=800&auto=format&fit=crop&q=80',
@@ -223,8 +200,8 @@ export function InvoiceProvider({ children }) {
       creatorPlatform: 'Instagram',
       creatorEmail: 'aditi.sharma.collabs@gmail.com',
       creatorPhone: '+91 98201 55432',
-      campaignId: newClaim.campaignId || 'camp_bc_001',
-      campaignName: newClaim.campaignName || 'Myntra Autumn/Winter 2026 Runway Collab',
+      campaignId: newClaim.campaignId || '6ace2b3abe742272b6135d8e',
+      campaignName: newClaim.campaignName || 'HaulPack x Amazon Head & Shoulders',
       portalType: 'brand-connect',
       submittedAt: new Date().toISOString(),
       submittedDate: '12 Sep, 2026',
@@ -296,16 +273,21 @@ export function InvoiceProvider({ children }) {
 
   // Computed metrics
   const pendingCount = useMemo(() =>
-    invoices.filter(inv => inv.status === INVOICE_STATUSES.UNDER_REVIEW || inv.status === 'Pending Verification').length,
+    invoices.filter(inv => inv.status === INVOICE_STATUSES.UNDER_REVIEW || inv.status === 'Pending Verification' || inv.status === 'Under Review').length,
     [invoices]
   );
+  const underReviewCount = pendingCount;
   const approvedCount = useMemo(() =>
-    invoices.filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified' || inv.status === 'Reimbursed').length,
+    invoices.filter(inv => inv.status === INVOICE_STATUSES.APPROVED || inv.status === 'Verified' || inv.status === 'Reimbursed' || inv.status === 'Approved').length,
+    [invoices]
+  );
+  const partiallyApprovedCount = useMemo(() =>
+    invoices.filter(inv => inv.status === INVOICE_STATUSES.PARTIALLY_APPROVED || inv.status === 'Partially Approved').length,
     [invoices]
   );
   const reimbursedCount = 0;
   const rejectedCount = useMemo(() =>
-    invoices.filter(inv => inv.status === INVOICE_STATUSES.REJECTED).length,
+    invoices.filter(inv => inv.status === INVOICE_STATUSES.REJECTED || inv.status === 'Rejected').length,
     [invoices]
   );
 
@@ -342,7 +324,9 @@ export function InvoiceProvider({ children }) {
         getInvoicesForCampaign,
         getInvoicesForCreator,
         pendingCount,
+        underReviewCount,
         approvedCount,
+        partiallyApprovedCount,
         reimbursedCount,
         rejectedCount,
         totalClaimedAmount,

@@ -1,10 +1,26 @@
+/* ==========================================================================
+   Dashboard Page — Pixel-Perfect match to Pulse by HaulPack reference
+   ========================================================================== */
+
+.dashboard {
+  width: 100%;
+}
+
+/* 1. Header */
 .dashboard__header {
-  margin-bottom: var(--space-4);
+  margin-bottom: 24px;
+}
+
+.dashboard__header-inner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.dashboard__header-left {
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard__header-top {
@@ -15,96 +31,138 @@
 }
 
 .dashboard__title {
-  font-size: var(--text-3xl);
+  font-size: 1.85rem;
   font-weight: 800;
-  color: var(--hp-text-primary);
-  letter-spacing: -0.02em;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.2;
 }
 
-.dashboard__subtitle {
-  font-size: var(--text-sm);
-  color: var(--hp-text-secondary);
-  margin-top: 4px;
-}
-
-.dashboard__mode-pill {
+.dashboard__direct-collabs-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  background: #f3e8ff;
+  color: #7c3aed;
+  border: 1px solid #e9d5ff;
   padding: 4px 12px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.05);
 }
 
-.dashboard__mode-pill--brand-connect {
-  background: #f2edfc;
-  color: #6538ea;
-  border: 1px solid #e1d6f8;
+.dashboard__subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 5px 0 0 0;
 }
 
-.dashboard__mode-pill--reward-program {
-  background: #e8fbf3;
-  color: #059669;
-  border: 1px solid #c0f2de;
+/* Big P&G Brand Lockup on the far right */
+.dashboard__header-brand-card {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 8px 16px 8px 10px;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.dashboard__switch-toggle-btn {
-  display: inline-flex;
+.dashboard__header-brand-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 20px -3px rgba(30, 58, 138, 0.12), 0 2px 6px -1px rgba(15, 23, 42, 0.05);
+}
+
+.dashboard__header-brand-logo-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  border: 1.5px solid #ffffff;
+}
+
+.dashboard__header-brand-logo-wrap .pg-logo {
+  border-radius: 50%;
+  display: block;
+}
+
+.dashboard__header-brand-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard__header-brand-name-row {
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  background: #ffffff;
-  border: 1.5px solid var(--hp-border);
-  border-radius: 12px;
-  color: var(--hp-text-primary);
-  font-size: var(--text-xs);
+}
+
+.dashboard__header-brand-name {
+  font-size: 0.95rem;
   font-weight: 700;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(30, 26, 56, 0.04);
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
 }
 
-.dashboard__switch-toggle-btn:hover {
-  background: var(--hp-bg);
-  border-color: var(--hp-primary-light);
-  color: var(--hp-primary);
-  box-shadow: 0 2px 6px rgba(101, 56, 234, 0.1);
-  transform: translateY(-1px);
+.dashboard__header-brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  padding: 1.5px 7px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-/* HaulPack Banner */
-.dashboard__haulpack-banner {
-  background: linear-gradient(135deg, #261f47 0%, #3a2e68 50%, #5338a0 100%);
-  border-radius: var(--radius-xl);
-  padding: 24px 28px;
-  margin-bottom: var(--space-6);
+.dashboard__header-brand-caption {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .dashboard__header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}
+
+/* 2. Hero Dark Purple Banner */
+.dashboard__hero-banner {
+  background: linear-gradient(135deg, #302263 0%, #3e2a7e 50%, #472b88 100%);
+  border-radius: 16px;
+  padding: 26px 32px;
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-6);
-  box-shadow: 0 8px 24px rgba(38, 31, 71, 0.18);
+  gap: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(48, 34, 99, 0.15);
   position: relative;
   overflow: hidden;
-  transition: all var(--transition-slow);
 }
 
-.dashboard__haulpack-banner--brand-connect {
-  background: linear-gradient(135deg, #241d44 0%, #37286a 50%, #5839ab 100%);
-}
-
-.dashboard__haulpack-banner--reward-program {
-  background: linear-gradient(135deg, #153229 0%, #1a4d3a 50%, #206d4e 100%);
-}
-
-.dashboard__haulpack-banner--reward-program::after {
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(16, 185, 129, 0) 70%) !important;
-}
-
-.dashboard__haulpack-banner::after {
+.dashboard__hero-banner::after {
   content: '';
   position: absolute;
   right: -30px;
@@ -112,256 +170,260 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(131, 95, 243, 0.35) 0%, rgba(131, 95, 243, 0) 70%);
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0) 70%);
   pointer-events: none;
 }
 
-.dashboard__banner-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  margin-bottom: 8px;
-  letter-spacing: 0.02em;
+.dashboard__hero-content {
+  flex: 1;
 }
 
-.dashboard__banner-title {
-  font-size: 1.45rem;
-  font-weight: 800;
+.dashboard__hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
   color: #ffffff;
-  margin: 0 0 6px;
+  margin-bottom: 10px;
+}
+
+.dashboard__hero-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px;
   letter-spacing: -0.01em;
 }
 
-.dashboard__banner-subtitle {
-  font-size: var(--text-sm);
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0;
-  max-width: 580px;
+.dashboard__hero-subtitle {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.75);
   line-height: 1.5;
+  max-width: 620px;
+  margin: 0;
 }
 
-.dashboard__banner-actions {
+.dashboard__hero-actions {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
 }
 
-.dashboard__banner-btn {
+.dashboard__hero-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 10px 18px;
-  border-radius: 12px;
-  font-size: var(--text-sm);
-  font-weight: 700;
-  text-decoration: none;
-  background: #ffffff;
-  color: #261f47;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-}
-
-.dashboard__banner-btn:hover {
-  background: #f8f8fd;
-  color: #6538ea;
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-  text-decoration: none;
-}
-
-.dashboard__banner-btn--secondary {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-.dashboard__banner-btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.24);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-/* Summary Cards — styled like Blast reference */
-.dashboard__summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-  margin-bottom: var(--space-8);
-}
-
-.dashboard__summary-card {
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
-  position: relative;
-  overflow: hidden;
-  transition: transform var(--transition-fast);
-}
-
-.dashboard__summary-card:hover {
-  transform: translateY(-2px);
-}
-
-.dashboard__summary-icon {
-  margin-bottom: var(--space-3);
-  opacity: 0.8;
-}
-
-.dashboard__summary-value {
-  font-family: var(--font-heading);
-  font-size: var(--text-4xl);
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: var(--space-2);
-}
-
-.dashboard__summary-label {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--hp-text-secondary);
-}
-
-/* Section */
-.dashboard__section {
-  margin-bottom: var(--space-8);
-}
-
-.dashboard__section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
-}
-
-.dashboard__section-title {
-  font-size: var(--text-xl);
-}
-
-.dashboard__view-all {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-sm);
+  border-radius: 8px;
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--hp-primary);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.dashboard__hero-btn--white {
+  background: #ffffff;
+  color: #1e1b4b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard__hero-btn--white:hover {
+  background: #f8fafc;
+  color: #1e1b4b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
   text-decoration: none;
 }
 
-.dashboard__view-all:hover {
+.dashboard__hero-btn--purple {
+  background: #523f99;
+  color: #ffffff;
+}
+
+.dashboard__hero-btn--purple:hover {
+  background: #5d48ab;
+  color: #ffffff;
+  transform: translateY(-1px);
   text-decoration: none;
-  opacity: 0.8;
 }
 
-/* Campaign Rows */
-.dashboard__campaigns {
-  background: var(--hp-bg-card);
-  border: 1px solid var(--hp-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.dashboard__campaign-row {
+/* 3. Review Alert Card */
+.dashboard__review-alert-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--hp-border-light);
-  text-decoration: none;
-  color: inherit;
-  transition: background var(--transition-fast);
-  gap: var(--space-6);
+  align-items: center;
+  gap: 20px;
 }
 
-.dashboard__campaign-row:last-child {
-  border-bottom: none;
-}
-
-.dashboard__campaign-row:hover {
-  background: var(--hp-primary-bg);
-  text-decoration: none;
-}
-
-.dashboard__campaign-info {
+.dashboard__review-alert-left {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  min-width: 0;
-  flex: 1;
+  gap: 16px;
 }
 
-.dashboard__campaign-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--hp-bg);
+.dashboard__review-alert-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4f46e5;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--hp-primary);
   flex-shrink: 0;
 }
 
-.dashboard__campaign-icon--brand {
-  background: #f2edfc;
-  color: #6538ea;
+.dashboard__review-alert-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
 }
 
-.dashboard__section-subtitle {
-  font-size: var(--text-xs);
-  color: var(--hp-text-secondary);
-  margin-top: 2px;
+.dashboard__review-alert-sub {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 3px 0 0;
 }
 
-.dashboard__campaign-name {
-  font-weight: 600;
-  font-size: var(--text-base);
-  margin-bottom: 6px;
-  color: var(--hp-text-primary);
-}
-
-.dashboard__campaign-meta {
-  display: flex;
+.dashboard__review-alert-btn {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+  gap: 8px;
+  background: #6338e8;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(99, 56, 232, 0.25);
 }
 
-.dashboard__campaign-tag {
-  font-size: var(--text-xs);
-  font-weight: 500;
-  padding: 1px 8px;
-  border-radius: var(--radius-full);
-  background: var(--hp-primary-lighter);
-  color: var(--hp-primary);
+.dashboard__review-alert-btn:hover {
+  background: #552cd3;
+  color: #ffffff;
+  transform: translateY(-1px);
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(99, 56, 232, 0.35);
 }
 
-.dashboard__campaign-date {
-  font-size: var(--text-xs);
-  color: var(--hp-text-tertiary);
-}
-
-/* Performance Bar */
-.dashboard__performance-bar {
+/* 4. Top KPI Grid */
+.dashboard__kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-  background: var(--hp-bg-card);
-  border: 1px solid var(--hp-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-6);
-  margin-bottom: var(--space-8);
-  box-shadow: var(--shadow-sm);
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.dashboard__perf-item {
+.dashboard__kpi-card {
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease;
+}
+
+.dashboard__kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard__kpi-card--purple {
+  background: #f5f3ff;
+}
+
+.dashboard__kpi-card--purple .dashboard__kpi-icon {
+  color: #8b5cf6;
+}
+
+.dashboard__kpi-card--purple .dashboard__kpi-value {
+  color: #7c3aed;
+}
+
+.dashboard__kpi-card--green {
+  background: #ecfdf5;
+}
+
+.dashboard__kpi-card--green .dashboard__kpi-icon {
+  color: #10b981;
+}
+
+.dashboard__kpi-card--green .dashboard__kpi-value {
+  color: #059669;
+}
+
+.dashboard__kpi-card--amber {
+  background: #fffbeb;
+}
+
+.dashboard__kpi-card--amber .dashboard__kpi-icon {
+  color: #f59e0b;
+}
+
+.dashboard__kpi-card--amber .dashboard__kpi-value {
+  color: #d97706;
+}
+
+.dashboard__kpi-card--slate {
+  background: #f1f5f9;
+}
+
+.dashboard__kpi-card--slate .dashboard__kpi-icon {
+  color: #64748b;
+}
+
+.dashboard__kpi-card--slate .dashboard__kpi-value {
+  color: #475569;
+}
+
+.dashboard__kpi-icon {
+  margin-bottom: 14px;
+}
+
+.dashboard__kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.dashboard__kpi-label {
+  font-size: 0.8125rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* 5. Media Reach Bar */
+.dashboard__perf-bar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.dashboard__perf-col {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 14px;
 }
 
 .dashboard__perf-icon {
@@ -376,183 +438,207 @@
 
 .dashboard__perf-label {
   display: block;
-  font-size: var(--text-xs);
-  color: var(--hp-text-secondary);
-  font-weight: 500;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   margin-bottom: 2px;
 }
 
 .dashboard__perf-val {
   display: block;
-  font-family: var(--font-heading);
-  font-size: var(--text-lg);
+  font-size: 1.05rem;
   font-weight: 700;
-  color: var(--hp-text-primary);
+  color: #0f172a;
   line-height: 1.2;
 }
 
-.dashboard__campaign-stats {
-  display: grid;
-  grid-template-columns: 75px 80px 80px 95px 105px;
-  align-items: center;
-  gap: var(--space-5);
-  flex-shrink: 0;
+/* 6. Active Brand Campaigns Section */
+.dashboard__campaigns-section {
+  width: 100%;
 }
 
-.dashboard__campaign-metric {
-  text-align: right;
-}
-
-.dashboard__metric-label {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--hp-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 3px;
-}
-
-.dashboard__metric-value {
-  display: block;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  color: var(--hp-text-primary);
-  line-height: 1.2;
-}
-
-.dashboard__metric-value--sales {
-  color: #059669;
-}
-
-.dashboard__campaign-status {
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (max-width: 960px) {
-  .dashboard__campaign-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
-  }
-
-  .dashboard__campaign-stats {
-    width: 100%;
-    grid-template-columns: repeat(4, 1fr) auto;
-    gap: var(--space-4);
-  }
-}
-
-@media (max-width: 768px) {
-  .dashboard__summary {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .dashboard__performance-bar {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 520px) {
-  .dashboard__summary {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard__performance-bar {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard__campaign-stats {
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-3);
-  }
-
-  .dashboard__campaign-status {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-    margin-top: 4px;
-  }
-}
-
-/* Pending Video Deliverables Alert Banner */
-.dashboard__approval-alert {
+.dashboard__campaigns-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border: 1.5px solid #fde68a;
-  border-radius: var(--radius-xl);
-  padding: 16px 20px;
-  margin-bottom: var(--space-6);
-  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.08);
+  margin-bottom: 16px;
 }
 
-.dashboard__approval-alert-left {
+.dashboard__campaigns-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.dashboard__campaigns-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 3px 0 0;
+}
+
+.dashboard__campaigns-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6338e8;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.dashboard__campaigns-view-all:hover {
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.dashboard__campaigns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dashboard__campaign-row-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.dashboard__campaign-row-card:hover {
+  border-color: #cbd5e1;
+  background: #fdfdfd;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  text-decoration: none;
+}
+
+.dashboard__campaign-card-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+  flex: 1;
 }
 
-.dashboard__approval-alert-icon {
+.dashboard__campaign-card-icon {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: #f59e0b;
-  color: #fff;
+  background: #f3e8ff;
+  color: #7c3aed;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
 }
 
-.dashboard__approval-alert-title {
-  font-size: var(--text-base);
+.dashboard__campaign-card-name {
+  font-size: 0.9375rem;
   font-weight: 700;
-  color: #78350f;
-  margin-bottom: 2px;
+  color: #0f172a;
+  margin-bottom: 4px;
 }
 
-.dashboard__approval-alert-desc {
-  font-size: var(--text-xs);
-  color: #92400e;
-  line-height: 1.4;
-  max-width: 680px;
-}
-
-.dashboard__approval-alert-btn {
-  display: inline-flex;
+.dashboard__campaign-card-meta {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  background: #78350f;
-  color: #ffffff;
-  padding: 10px 18px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-decoration: none;
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(120, 53, 15, 0.25);
+  gap: 10px;
 }
 
-.dashboard__approval-alert-btn:hover {
-  background: #5b2809;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(120, 53, 15, 0.35);
+.dashboard__campaign-card-badge {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #dbeafe;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.dashboard__campaign-card-date {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.dashboard__campaign-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  flex-shrink: 0;
+}
+
+.dashboard__campaign-stat-item {
+  text-align: right;
+}
+
+.dashboard__stat-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.dashboard__stat-value {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dashboard__status-pill {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .dashboard__kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard__perf-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard__hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 768px) {
-  .dashboard__approval-alert {
+  .dashboard__campaign-row-card {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
-  .dashboard__approval-alert-btn {
-    justify-content: center;
+  .dashboard__campaign-card-stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .dashboard__review-alert-card {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
-

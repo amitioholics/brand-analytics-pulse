@@ -33,6 +33,15 @@ export function formatDateShort(dateStr) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+export function formatDateTime(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '—';
+  const dateFormatted = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeFormatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return `${dateFormatted}, ${timeFormatted}`;
+}
+
 export function formatDateRange(start, end) {
   return `${formatDate(start)} – ${formatDate(end)}`;
 }

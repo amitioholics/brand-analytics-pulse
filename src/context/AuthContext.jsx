@@ -3,16 +3,16 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext(null);
 
 const DEFAULT_USER = {
-  name: 'Myntra Brand Operations',
-  email: 'brand.partner@myntra.com',
-  brand: 'Myntra',
-  role: 'Program Director',
-  avatar: 'MB',
+  name: 'Procter & Gamble Brand Team',
+  email: 'kondala.raju@paisawapas.com',
+  brand: 'Procter & Gamble',
+  role: 'Brand Team',
+  avatar: 'PG',
 };
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('hp_brand_user');
+    const saved = localStorage.getItem('hp_brand_user_v10');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
     };
     setUser(loggedUser);
     setIsAuthenticated(true);
-    localStorage.setItem('hp_brand_user', JSON.stringify(loggedUser));
+    localStorage.setItem('hp_brand_user_v10', JSON.stringify(loggedUser));
     localStorage.setItem('hp_auth_status', 'logged_in');
     return true;
   };

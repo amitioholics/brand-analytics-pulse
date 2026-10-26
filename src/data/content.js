@@ -86,32 +86,124 @@ function generateContentForCampaignCreator(campaignId, creatorId, creatorPlatfor
 // Build all content
 let _allContent = null;
 
+const PG_LIVE_CONTENT = [
+  {
+    id: 'post_jyoti_1',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_jyoti_y',
+    title: 'Head & Shoulders Scalp Care Routine — Anti-Dandruff Review',
+    caption: 'My everyday scalp care secret with Head & Shoulders Anti-Dandruff range! Available now on Amazon. #HeadAndShoulders #AmazonFinds #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ02',
+    publishedAt: '2026-10-14',
+    status: 'Approved',
+    views: 185000,
+    clicks: 9250,
+    sales: 17400,
+    orders: 31,
+  },
+  {
+    id: 'post_jyoti_2',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_jyoti_y',
+    title: 'Smooth & Silky 2-in-1 Daily Wash Haul',
+    caption: 'Clean, nourished hair all week long with Head & Shoulders on Amazon! #HeadAndShoulders #DailyCare #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ03',
+    publishedAt: '2026-10-15',
+    status: 'Approved',
+    views: 142000,
+    clicks: 7100,
+    sales: 13300,
+    orders: 18,
+  },
+  {
+    id: 'post_supriya_1',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_supriya_g',
+    title: 'Anti-Dandruff Scalp Refresh & Styling',
+    caption: 'Dandruff-free smooth hair with Head & Shoulders! Shop exclusive deals on Amazon. #HeadAndShoulders #HairCare #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ04',
+    publishedAt: '2026-10-14',
+    status: 'Approved',
+    views: 125000,
+    clicks: 6250,
+    sales: 13000,
+    orders: 24,
+  },
+  {
+    id: 'post_supriya_2',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_supriya_g',
+    title: 'Conditioner Wash Routine with Head & Shoulders',
+    caption: 'Say goodbye to flaky scalp with Head & Shoulders Cool Menthol! Link in bio to Amazon shop. #HeadAndShoulders #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ05',
+    publishedAt: '2026-10-15',
+    status: 'Approved',
+    views: 98000,
+    clicks: 4900,
+    sales: 8200,
+    orders: 14,
+  },
+  {
+    id: 'post_amit_1',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_amit_t',
+    title: 'Head & Shoulders Cool Menthol Anti-Dandruff Routine',
+    caption: 'Keeping hair fresh and flake-free with Head & Shoulders Cool Menthol! Check out the Amazon exclusive link in bio. #HeadAndShoulders #AmazonFinds #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ06',
+    publishedAt: '2026-10-14',
+    status: 'Approved',
+    views: 240000,
+    clicks: 12000,
+    sales: 61600,
+    orders: 20,
+  },
+  {
+    id: 'post_ritu_1',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_ritu_s',
+    title: 'Deep Clean Scalp Care Routine with Head & Shoulders',
+    caption: 'My secret to healthy, dandruff-free hair: Head & Shoulders on Amazon! #HeadAndShoulders #HairCare #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ07',
+    publishedAt: '2026-10-15',
+    status: 'Approved',
+    views: 195000,
+    clicks: 9750,
+    sales: 52000,
+    orders: 12,
+  },
+  {
+    id: 'post_aditi_1',
+    campaignId: '6ace2b3abe742272b6135d8e',
+    creatorId: 'cr_aditi',
+    title: 'Smooth & Nourished Scalp Care with Head & Shoulders',
+    caption: 'Transforming my hair routine with Head & Shoulders Scalp Care essentials on Amazon ✨ #HeadAndShoulders #DailyCare #Ad',
+    platform: 'Instagram',
+    contentType: 'Instagram Reel',
+    contentUrl: 'https://www.instagram.com/reel/C8kF9xXyZ08',
+    publishedAt: '2026-10-16',
+    status: 'Approved',
+    views: 160000,
+    clicks: 8000,
+    sales: 27000,
+    orders: 5,
+  },
+];
+
 export function getAllContent() {
   if (_allContent) return _allContent;
-
-  const campaignDates = {
-    // Reward Program
-    camp_001: { start: '2026-09-01', end: '2026-09-30' },
-    camp_002: { start: '2026-08-15', end: '2026-09-30' },
-    camp_003: { start: '2026-08-01', end: '2026-08-31' },
-    // Brand Connect
-    camp_bc_001: { start: '2026-09-01', end: '2026-09-30' },
-    camp_bc_002: { start: '2026-08-20', end: '2026-09-25' },
-    camp_bc_003: { start: '2026-08-01', end: '2026-08-31' },
-  };
-
-  _allContent = [];
-
-  Object.entries(campaignDates).forEach(([campId, dates]) => {
-    const campCreators = getCreatorsForCampaign(campId);
-    campCreators.forEach(creator => {
-      const pieces = generateContentForCampaignCreator(
-        campId, creator.id, creator.platform, dates.start, dates.end
-      );
-      _allContent.push(...pieces);
-    });
-  });
-
+  _allContent = [...PG_LIVE_CONTENT];
   return _allContent;
 }
 

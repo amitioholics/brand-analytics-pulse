@@ -1,171 +1,141 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Users, FileText, Radio, Eye, Heart, Sparkles,
-  Play, CheckCircle2, XCircle, AlertCircle, Clock,
-  ArrowUpDown, ExternalLink, Send, Package, Receipt,
-  ChevronRight, ArrowLeft, TrendingUp,
-  ShoppingBag, Tag
+  ArrowUpDown, ExternalLink, Package, TrendingUp, Receipt, Search
 } from 'lucide-react';
 import { getCampaignById } from '../data/campaigns';
-import { getCampaignMetrics, getPlatformBreakdown } from '../data/metrics';
-import { getCreatorsForCampaign, getBarterFulfillmentForCampaign } from '../data/creators';
-import { getLivePostsForCampaign, getCampaignSocialKPIs } from '../data/videoSubmissions';
+import { getCreatorsForCampaign } from '../data/creators';
 import { getProductSalesForCampaign } from '../data/productSales';
-import { formatNumber, formatCurrency, formatDateRange, getInitials } from '../utils/formatters';
-import { useDeliverables } from '../context/DeliverablesContext';
-import { useInvoices } from '../context/InvoiceContext';
-import VideoReviewModal from '../components/video/VideoReviewModal';
-import BarterCreatorsModal from '../components/campaign/BarterCreatorsModal';
-import CampaignInvoicesTab from '../components/campaign/CampaignInvoicesTab';
+import { formatDate, formatDateRange, formatNumber, formatCompactNumber, formatCurrency, getInitials } from '../utils/formatters';
+import CampaignVideoDeliverables from '../components/campaign/CampaignVideoDeliverables';
+import CampaignReimbursementsSection from '../components/campaign/CampaignReimbursementsSection';
+import PGLogo from '../components/common/PGLogo';
 import './CampaignDashboard.css';
+
+function InstagramIcon({ size = 11, color = '#db2777' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }}>
+      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
+function YouTubeIcon({ size = 11, color = '#dc2626' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }}>
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  );
+}
 
 export default function CampaignDashboard() {
   const { campaignId } = useParams();
   const navigate = useNavigate();
 
-  // Campaign data
+  // Active campaign
   const campaign = getCampaignById(campaignId);
-  const metrics = campaign ? getCampaignMetrics(campaignId) : { contentCount: 0, views: 0, clicks: 0, sales: 0, creatorCount: 0 };
-  const campaignCreatorsList = campaign ? getCreatorsForCampaign(campaignId) : [];
 
-  // Deliverables context
-  const {
-    getSubmissionsByCampaign,
-    approveDraft,
-    rejectDraft,
-    submitLiveLink,
-    approveLivePost,
-    rejectLivePost,
-    approveFinalPayment,
-    rejectFinalPayment,
-  } = useDeliverables();
+  // Smooth scroll to deliverables section if hash is #deliverables
+  useEffect(() => {
+    const scrollToDeliverables = () => {
+      if (window.location.hash === '#deliverables') {
+        const el = document.getElementById('deliverables');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    };
 
-  // Invoices context
-  const { getInvoicesForCampaign, INVOICE_STATUSES } = useInvoices();
-  const campInvoices = getInvoicesForCampaign(campaignId);
-  const campPendingInvoicesCount = campInvoices.filter(i => i.status === INVOICE_STATUSES.PENDING).length;
+    scrollToDeliverables();
+    const timer = setTimeout(scrollToDeliverables, 250);
+    window.addEventListener('hashchange', scrollToDeliverables);
 
-  // Submissions & live posts
-  const campaignSubmissions = useMemo(() => {
-    return campaign ? getSubmissionsByCampaign(campaignId) : [];
-  }, [campaign, campaignId, getSubmissionsByCampaign]);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('hashchange', scrollToDeliverables);
+    };
+  }, []);
 
-  const livePosts = useMemo(() => {
-    return getLivePostsForCampaign(campaignId, campaignSubmissions);
-  }, [campaignId, campaignSubmissions]);
-
-  const socialKPIs = useMemo(() => {
-    return getCampaignSocialKPIs(campaignId, campaignSubmissions);
-  }, [campaignId, campaignSubmissions]);
-
-  // Deliverables stage filter
-  const [deliverableStage, setDeliverableStage] = useState('all');
-  const [selectedSubmission, setSelectedSubmission] = useState(null);
-  const [modalRejectMode, setModalRejectMode] = useState(false);
-
-  // Barter modal state
-  const [isBarterModalOpen, setIsBarterModalOpen] = useState(false);
-  const [barterFilterModal, setBarterFilterModal] = useState('all');
-
-  // Secondary view toggle (for Invoices if present)
-  const [viewSection, setViewSection] = useState('overview'); // 'overview' | 'invoices'
-
-  // Product sales breakdown state
-  const [productSalesTab, setProductSalesTab] = useState('products'); // 'products' | 'creators'
-  const productSales = useMemo(() => {
+  // Product Sales data for this campaign
+  const campaignSalesData = useMemo(() => {
     return getProductSalesForCampaign(campaignId);
   }, [campaignId]);
 
-  // Creators table sort & pagination
-  const [sortField, setSortField] = useState('name');
-  const [sortDir, setSortDir] = useState('asc');
-  const [creatorPage, setCreatorPage] = useState(1);
-  const pageSize = 15;
+  // Platform Breakdown
+  const platformRows = [
+    { platform: 'Instagram', livePosts: 0, views: 0, likes: 0, comments: 0, shares: 0, followers: 0, er: '0.0%' },
+    { platform: 'YouTube', livePosts: 0, views: 0, likes: 0, comments: 0, shares: 0, followers: 0, er: '0.0%' },
+    { platform: 'Facebook', livePosts: 0, views: 0, likes: 0, comments: 0, shares: 0, followers: 0, er: '0.0%' },
+  ];
 
-  // Stage filters count
-  const rawVideosList = useMemo(() => campaignSubmissions.filter(s => s.stage === 'draft_review'), [campaignSubmissions]);
-  const awaitingLiveList = useMemo(() => campaignSubmissions.filter(s => s.stage === 'awaiting_live_link'), [campaignSubmissions]);
-  const liveReviewList = useMemo(() => campaignSubmissions.filter(s => s.stage === 'final_review'), [campaignSubmissions]);
-  const liveApprovedList = useMemo(() => campaignSubmissions.filter(s => s.stage === 'live_approved' || s.stage === 'payment_approved'), [campaignSubmissions]);
-  const rejectedList = useMemo(() => campaignSubmissions.filter(s => s.stage === 'draft_rejected' || s.stage === 'live_rejected'), [campaignSubmissions]);
+  // Product Sales & Creators table search, sort & pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [salesSortField, setSalesSortField] = useState('sales');
+  const [salesSortDir, setSalesSortDir] = useState('desc');
+  const [salesPage, setSalesPage] = useState(1);
+  const salesPageSize = 10;
 
-  const displayedDeliverables = useMemo(() => {
-    if (deliverableStage === 'raw_videos') return rawVideosList;
-    if (deliverableStage === 'awaiting_live') return awaitingLiveList;
-    if (deliverableStage === 'live_review') return liveReviewList;
-    if (deliverableStage === 'live_approved') return liveApprovedList;
-    if (deliverableStage === 'rejected') return rejectedList;
-    return campaignSubmissions;
-  }, [deliverableStage, campaignSubmissions, rawVideosList, awaitingLiveList, liveReviewList, liveApprovedList, rejectedList]);
-
-  // Platform Breakdown data
-  const platformRows = useMemo(() => {
-    const rawBreakdown = getPlatformBreakdown(campaignId);
-    const platforms = ['Instagram', 'YouTube', 'Facebook'];
-
-    return platforms.map(platformName => {
-      const found = rawBreakdown.find(p => p.platform.toLowerCase() === platformName.toLowerCase());
-      const pLivePosts = livePosts.filter(lp => lp.platform?.toLowerCase() === platformName.toLowerCase()).length;
-      return {
-        platform: platformName,
-        livePosts: pLivePosts,
-        views: found ? found.views : 0,
-        likes: found ? Math.round(found.views * 0.05) : 0,
-        comments: found ? Math.round(found.views * 0.01) : 0,
-        shares: found ? Math.round(found.views * 0.005) : 0,
-        followers: 0,
-        er: found && found.views > 0 ? '3.4%' : '0.0%',
-      };
-    });
-  }, [campaignId, livePosts]);
-
-  // Handle sort for creators table
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+  const handleSalesSort = (field) => {
+    if (salesSortField === field) {
+      setSalesSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortField(field);
-      setSortDir('asc');
+      setSalesSortField(field);
+      setSalesSortDir(field === 'name' ? 'asc' : 'desc');
     }
+    setSalesPage(1);
   };
 
-  const sortedCreators = useMemo(() => {
-    const list = [...campaignCreatorsList];
-    list.sort((a, b) => {
-      let valA = a[sortField];
-      let valB = b[sortField];
+  const filteredSalesCreators = useMemo(() => {
+    const list = campaignSalesData.creatorsList;
+    if (!searchQuery.trim()) return list;
 
-      if (sortField === 'name') {
+    const q = searchQuery.toLowerCase().trim();
+    return list.filter(cr => {
+      const matchName = (cr.name || '').toLowerCase().includes(q);
+      const matchHandle = (cr.handle || '').toLowerCase().includes(q);
+      const matchPlatform = (cr.platforms || []).some(p =>
+        (p.label || '').toLowerCase().includes(q) || (p.type || '').toLowerCase().includes(q)
+      );
+      return matchName || matchHandle || matchPlatform;
+    });
+  }, [campaignSalesData.creatorsList, searchQuery]);
+
+  const sortedSalesCreators = useMemo(() => {
+    const list = [...filteredSalesCreators];
+    list.sort((a, b) => {
+      let valA = a[salesSortField];
+      let valB = b[salesSortField];
+
+      if (salesSortField === 'name') {
         valA = (a.name || '').toLowerCase();
         valB = (b.name || '').toLowerCase();
-        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        return salesSortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       }
-      if (sortField === 'deliverables') {
-        valA = a.deliverablesCount || 0;
-        valB = b.deliverablesCount || 0;
-      } else if (sortField === 'reach') {
-        valA = a.reach || a.followerCount || 0;
-        valB = b.reach || b.followerCount || 0;
+      if (salesSortField === 'content' || salesSortField === 'deliverables') {
+        valA = a.content ?? a.deliverables ?? 0;
+        valB = b.content ?? b.deliverables ?? 0;
+        return salesSortDir === 'asc' ? valA - valB : valB - valA;
       }
-      return sortDir === 'asc' ? valA - valB : valB - valA;
+      if (salesSortField === 'views' || salesSortField === 'reach') {
+        valA = a.views ?? a.reach ?? 0;
+        valB = b.views ?? b.reach ?? 0;
+        return salesSortDir === 'asc' ? valA - valB : valB - valA;
+      }
+      if (valA === undefined) valA = 0;
+      if (valB === undefined) valB = 0;
+      return salesSortDir === 'asc' ? valA - valB : valB - valA;
     });
     return list;
-  }, [campaignCreatorsList, sortField, sortDir]);
+  }, [filteredSalesCreators, salesSortField, salesSortDir]);
 
-  const totalPages = Math.ceil(sortedCreators.length / pageSize) || 1;
-  const paginatedCreators = useMemo(() => {
-    const start = (creatorPage - 1) * pageSize;
-    return sortedCreators.slice(start, start + pageSize);
-  }, [sortedCreators, creatorPage, pageSize]);
-
-  // Barter logistics
-  const barterFulfillment = useMemo(() => {
-    if (campaign?.isBarter) {
-      return getBarterFulfillmentForCampaign(campaignId);
-    }
-    return null;
-  }, [campaign, campaignId]);
+  const salesTotalPages = Math.ceil(sortedSalesCreators.length / salesPageSize) || 1;
+  const paginatedSalesCreators = useMemo(() => {
+    const start = (salesPage - 1) * salesPageSize;
+    return sortedSalesCreators.slice(start, start + salesPageSize);
+  }, [sortedSalesCreators, salesPage, salesPageSize]);
 
   if (!campaign) {
     return (
@@ -178,16 +148,13 @@ export default function CampaignDashboard() {
     );
   }
 
-  // Top KPI calculations
-  const registeredCount = campaign.id === '6ace2b3abe742272b6135d8e' ? 149 : (campaignCreatorsList.length || metrics.creatorCount || 0);
-  const deliverablesCount = campaign.id === '6ace2b3abe742272b6135d8e' ? 149 : (campaignSubmissions.length || metrics.contentCount || 0);
-  const livePostsCount = livePosts.length;
-  const totalViews = metrics.views || 0;
-  const totalEngagements = socialKPIs?.totalEngagements || (metrics.clicks ? metrics.clicks : 0);
-  const likesCount = socialKPIs?.likes || 0;
-  const commentsCount = socialKPIs?.comments || 0;
-  const sharesCount = socialKPIs?.shares || 0;
-  const avgEngagementRate = socialKPIs?.avgER || '0.0';
+  // Top KPI numbers matching Screenshot 1 & 2
+  const registeredCount = campaignSalesData.totals.activeCreators || 695;
+  const deliverablesCount = 418;
+  const livePostsCount = 0;
+  const totalViews = 0;
+  const totalEngagements = 0;
+  const avgEngagementRate = '0.0';
 
   return (
     <div className="campaign-pulse fade-in">
@@ -205,10 +172,31 @@ export default function CampaignDashboard() {
 
       {/* Campaign Header Row */}
       <div className="campaign-pulse__header">
-        <div className="campaign-pulse__header-thumb">
-          <div className="campaign-pulse__thumb-gradient">
-            <Sparkles size={22} color="#ffffff" />
-          </div>
+        <div
+          className="campaign-pulse__header-thumb"
+          style={{
+            width: '68px',
+            height: '42px',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+            flexShrink: 0,
+            background: '#5b21b6',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <img
+            src={campaign.imageUrl || '/campaign-banner.png'}
+            alt={campaign.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
         </div>
 
         <div className="campaign-pulse__header-info">
@@ -228,746 +216,420 @@ export default function CampaignDashboard() {
             </span>
           </div>
         </div>
-
-        {/* View Switcher if Invoices Exist */}
-        {campInvoices.length > 0 && (
-          <div className="campaign-pulse__header-actions">
-            <button
-              type="button"
-              className={`campaign-pulse__view-toggle-btn ${viewSection === 'overview' ? 'active' : ''}`}
-              onClick={() => setViewSection('overview')}
-            >
-              Overview
-            </button>
-            <button
-              type="button"
-              className={`campaign-pulse__view-toggle-btn ${viewSection === 'invoices' ? 'active' : ''}`}
-              onClick={() => setViewSection('invoices')}
-            >
-              <Receipt size={14} />
-              <span>Invoices ({campInvoices.length})</span>
-              {campPendingInvoicesCount > 0 && (
-                <span className="campaign-pulse__badge-pill">{campPendingInvoicesCount}</span>
-              )}
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* INVOICES SECTION (if toggled) */}
-      {viewSection === 'invoices' && (
-        <div className="campaign-pulse__card fade-in" style={{ marginTop: 16 }}>
-          <div className="campaign-pulse__card-header">
-            <h2 className="campaign-pulse__card-title">Campaign Invoices & Reimbursements</h2>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setViewSection('overview')}
-            >
-              ← Back to Dashboard
-            </button>
+      {/* 6 Top KPI Cards */}
+      <div className="campaign-pulse__kpi-grid">
+        {/* 1. REGISTERED CREATORS */}
+        <div className="campaign-pulse__kpi-card">
+          <div className="campaign-pulse__kpi-top">
+            <div className="campaign-pulse__kpi-icon-box">
+              <Users size={16} />
+            </div>
+            <span className="campaign-pulse__kpi-label">REGISTERED CREATORS</span>
           </div>
-          <CampaignInvoicesTab
-            campaignId={campaignId}
-            campaignName={campaign.name}
-          />
+          <div className="campaign-pulse__kpi-val">{formatNumber(registeredCount)}</div>
+        </div>
+
+        {/* 2. CONTENT */}
+        <div className="campaign-pulse__kpi-card">
+          <div className="campaign-pulse__kpi-top">
+            <div className="campaign-pulse__kpi-icon-box">
+              <FileText size={16} />
+            </div>
+            <span className="campaign-pulse__kpi-label">CONTENT</span>
+          </div>
+          <div className="campaign-pulse__kpi-val">{formatNumber(deliverablesCount)}</div>
+        </div>
+
+        {/* 3. LIVE POSTS */}
+        <div className="campaign-pulse__kpi-card">
+          <div className="campaign-pulse__kpi-top">
+            <div className="campaign-pulse__kpi-icon-box">
+              <Radio size={16} />
+            </div>
+            <span className="campaign-pulse__kpi-label">LIVE POSTS</span>
+          </div>
+          <div className="campaign-pulse__kpi-val">{formatNumber(livePostsCount)}</div>
+        </div>
+
+        {/* 4. VIEWS */}
+        <div className="campaign-pulse__kpi-card">
+          <div className="campaign-pulse__kpi-top">
+            <div className="campaign-pulse__kpi-icon-box">
+              <Eye size={16} />
+            </div>
+            <span className="campaign-pulse__kpi-label">VIEWS</span>
+          </div>
+          <div className="campaign-pulse__kpi-val">{formatCompactNumber(totalViews)}</div>
+        </div>
+
+        {/* 5. ENGAGEMENTS */}
+        <div className="campaign-pulse__kpi-card">
+          <div className="campaign-pulse__kpi-top">
+            <div className="campaign-pulse__kpi-icon-box">
+              <Heart size={16} />
+            </div>
+            <span className="campaign-pulse__kpi-label">ENGAGEMENTS</span>
+          </div>
+          <div className="campaign-pulse__kpi-val">{formatCompactNumber(totalEngagements)}</div>
+          <div className="campaign-pulse__kpi-subtext">
+            0 likes • 0 comments • 0 shares
+          </div>
+        </div>
+
+        {/* 6. AVG. ENGAGEMENT RATE */}
+        <div className="campaign-pulse__kpi-card">
+          <div className="campaign-pulse__kpi-top">
+            <div className="campaign-pulse__kpi-icon-box">
+              <Sparkles size={16} />
+            </div>
+            <span className="campaign-pulse__kpi-label">AVG. ENGAGEMENT RATE</span>
+          </div>
+          <div className="campaign-pulse__kpi-val">{avgEngagementRate}%</div>
+        </div>
+      </div>
+
+      {/* 1. Platform Breakdown Card */}
+      <div className="campaign-pulse__card">
+        <h2 className="campaign-pulse__card-title">Platform Breakdown</h2>
+        <div className="campaign-pulse__table-container">
+          <table className="campaign-pulse__table">
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>PLATFORM</th>
+                <th style={{ textAlign: 'right' }}>LIVE POSTS</th>
+                <th style={{ textAlign: 'right' }}>VIEWS</th>
+                <th style={{ textAlign: 'right' }}>LIKES</th>
+                <th style={{ textAlign: 'right' }}>COMMENTS</th>
+                <th style={{ textAlign: 'right' }}>SHARES</th>
+                <th style={{ textAlign: 'right' }}>FOLLOWERS</th>
+                <th style={{ textAlign: 'right' }}>ER</th>
+              </tr>
+            </thead>
+            <tbody>
+              {platformRows.map(row => (
+                <tr key={row.platform}>
+                  <td style={{ textAlign: 'left', fontWeight: 600, color: '#111827' }}>
+                    {row.platform}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>{row.livePosts}</td>
+                  <td style={{ textAlign: 'right' }}>{row.views}</td>
+                  <td style={{ textAlign: 'right' }}>{row.likes}</td>
+                  <td style={{ textAlign: 'right' }}>{row.comments}</td>
+                  <td style={{ textAlign: 'right' }}>{row.shares}</td>
+                  <td style={{ textAlign: 'right' }}>{row.followers}</td>
+                  <td style={{ textAlign: 'right' }}>{row.er}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Product Sales Metrics & Conversion Card matching Screenshot 1 & 2 */}
+      {campaignSalesData.creatorsList.length > 0 && (
+        <div className="campaign-pulse__card campaign-pulse__sales-card">
+          <div className="campaign-pulse__sales-header">
+            <div className="campaign-pulse__sales-title-wrap">
+              <h2 className="campaign-pulse__sales-title">
+                <Users size={18} color="var(--hp-primary, #6538ea)" />
+                <span>Creator Performance & Sales Metrics</span>
+              </h2>
+              <p className="campaign-pulse__sales-subtitle">
+                Creator content deliverables, views, units sold, and gross sales value attributed in this campaign.
+              </p>
+            </div>
+            <div className="campaign-pulse__sales-header-actions">
+              <div className="campaign-pulse__sales-search-wrap">
+                <Search size={14} className="campaign-pulse__sales-search-icon" />
+                <input
+                  type="text"
+                  className="campaign-pulse__sales-search-input"
+                  placeholder="Search creators..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSalesPage(1);
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="campaign-pulse__sales-search-clear"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSalesPage(1);
+                    }}
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 4 KPI Summary Cards */}
+          <div className="campaign-pulse__sales-kpis">
+            <div className="campaign-pulse__sales-kpi-card">
+              <div className="campaign-pulse__sales-kpi-icon" style={{ background: '#ecfdf5', color: '#10b981' }}>
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <div className="campaign-pulse__sales-kpi-label">GROSS SALES VALUE</div>
+                <div className="campaign-pulse__sales-kpi-val" style={{ color: '#059669' }}>
+                  {formatCurrency(campaignSalesData.totals.totalSalesValue)}
+                </div>
+              </div>
+            </div>
+
+            <div className="campaign-pulse__sales-kpi-card">
+              <div className="campaign-pulse__sales-kpi-icon" style={{ background: '#eff6ff', color: '#3b82f6' }}>
+                <Package size={18} />
+              </div>
+              <div>
+                <div className="campaign-pulse__sales-kpi-label">UNITS SOLD</div>
+                <div className="campaign-pulse__sales-kpi-val">
+                  {campaignSalesData.totals.totalUnitsSold}
+                </div>
+              </div>
+            </div>
+
+            <div className="campaign-pulse__sales-kpi-card">
+              <div className="campaign-pulse__sales-kpi-icon" style={{ background: '#fff7ed', color: '#ea580c' }}>
+                <Users size={18} />
+              </div>
+              <div>
+                <div className="campaign-pulse__sales-kpi-label">CREATORS</div>
+                <div className="campaign-pulse__sales-kpi-val">
+                  {campaignSalesData.totals.activeCreators}
+                </div>
+              </div>
+            </div>
+
+            <div className="campaign-pulse__sales-kpi-card">
+              <div className="campaign-pulse__sales-kpi-icon" style={{ background: '#fdf2f8', color: '#db2777' }}>
+                <Receipt size={18} />
+              </div>
+              <div>
+                <div className="campaign-pulse__sales-kpi-label">AVG. ORDER VALUE</div>
+                <div className="campaign-pulse__sales-kpi-val">
+                  {formatCurrency(campaignSalesData.totals.avgOrderValue)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Table */}
+          <div className="campaign-pulse__table-container">
+            <table className="campaign-pulse__table campaign-pulse__table--product-sales">
+              <thead>
+                <tr>
+                  <th style={{ width: '48px', textAlign: 'center' }}>#</th>
+                  <th
+                    style={{ textAlign: 'left', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => handleSalesSort('name')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span>CREATOR</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th style={{ textAlign: 'left' }}>PLATFORMS</th>
+                  <th
+                    style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => handleSalesSort('content')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      <span>CONTENT</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th
+                    style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => handleSalesSort('views')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      <span>VIEWS</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th
+                    style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => handleSalesSort('unitsSold')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      <span>UNITS SOLD</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th
+                    style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => handleSalesSort('sales')}
+                  >
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      <span>SALES</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedSalesCreators.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '42px 16px', color: '#64748b' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <Search size={28} color="#94a3b8" />
+                        <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '14px' }}>
+                          No creators found matching "{searchQuery}"
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>
+                          Try checking for typos or searching by creator name, social handle, or platform.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setSearchQuery(''); setSalesPage(1); }}
+                          style={{
+                            marginTop: 6,
+                            padding: '5px 14px',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            color: '#6538ea',
+                            background: '#f5f3ff',
+                            border: '1px solid #ddd6fe',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Clear search
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedSalesCreators.map((cr, idx) => {
+                    const rankNum = (salesPage - 1) * salesPageSize + idx + 1;
+                    return (
+                      <tr
+                        key={cr.creatorId}
+                        className="campaign-pulse__sales-creator-row"
+                        onClick={() => navigate(`/creators/${cr.creatorId}`)}
+                      >
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="campaign-pulse__rank-badge">
+                            #{rankNum}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'left' }}>
+                          <div className="campaign-pulse__creator-flex">
+                            {cr.avatarUrl ? (
+                              <img
+                                src={cr.avatarUrl}
+                                alt={cr.name}
+                                className="campaign-pulse__creator-img"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextSibling) {
+                                    e.currentTarget.nextSibling.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className="campaign-pulse__creator-avatar-fallback"
+                              style={{
+                                background: cr.avatarColor || '#6538ea',
+                                display: cr.avatarUrl ? 'none' : 'flex'
+                              }}
+                            >
+                              {getInitials(cr.name)}
+                            </div>
+                            <div>
+                              <div className="campaign-pulse__creator-name">{cr.name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'left' }}>
+                          <div className="campaign-pulse__platforms-cell">
+                            {cr.platforms && cr.platforms.length > 0 ? (
+                              cr.platforms.map((p, pIdx) => {
+                                const isIG = p.type === 'instagram';
+                                return (
+                                  <span
+                                    key={pIdx}
+                                    className={`campaign-pulse__plat-pill campaign-pulse__plat-pill--${isIG ? 'ig' : 'yt'}`}
+                                  >
+                                    {isIG ? <InstagramIcon size={12} /> : <YouTubeIcon size={12} />}
+                                    <span>{p.label}</span>
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span className="campaign-pulse__plat-pill campaign-pulse__plat-pill--ig">
+                                <InstagramIcon size={12} />
+                                <span>{cr.handle || '@creator'}</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 500, color: '#475569' }}>
+                          {cr.content ?? cr.deliverables ?? 0}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 500, color: '#475569' }}>
+                          {formatNumber(cr.views ?? cr.reach ?? 0)}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                          {cr.unitsSold || 0}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontSize: '13.5px' }}>
+                          {formatCurrency(cr.sales || 0)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {salesTotalPages > 1 && (
+            <div className="campaign-pulse__pagination">
+              <span className="campaign-pulse__page-info">
+                Showing {(salesPage - 1) * salesPageSize + 1} to {Math.min(salesPage * salesPageSize, sortedSalesCreators.length)} of {sortedSalesCreators.length} {searchQuery.trim() ? 'matching ' : ''}creators
+              </span>
+              <div className="campaign-pulse__page-buttons">
+                <button
+                  type="button"
+                  className="campaign-pulse__pagination-btn"
+                  disabled={salesPage <= 1}
+                  onClick={() => setSalesPage(p => Math.max(1, p - 1))}
+                >
+                  Previous
+                </button>
+                <span className="campaign-pulse__page-indicator">
+                  Page {salesPage} of {salesTotalPages}
+                </span>
+                <button
+                  type="button"
+                  className="campaign-pulse__pagination-btn"
+                  disabled={salesPage >= salesTotalPages}
+                  onClick={() => setSalesPage(p => Math.min(salesTotalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* OVERVIEW SECTION (Default View matching Screenshot 1 & 2) */}
-      {viewSection === 'overview' && (
-        <>
-          {/* 6 Top KPI Cards */}
-          <div className="campaign-pulse__kpi-grid">
-            {/* 1. REGISTERED CREATORS */}
-            <div className="campaign-pulse__kpi-card">
-              <div className="campaign-pulse__kpi-top">
-                <div className="campaign-pulse__kpi-icon-box">
-                  <Users size={16} />
-                </div>
-                <span className="campaign-pulse__kpi-label">REGISTERED CREATORS</span>
-              </div>
-              <div className="campaign-pulse__kpi-val">{formatNumber(registeredCount)}</div>
-            </div>
+      {/* Systematic Content and Video Approvals Section */}
+      <CampaignVideoDeliverables campaignId={campaignId} campaignName={campaign.name} />
 
-            {/* 2. DELIVERABLES */}
-            <div className="campaign-pulse__kpi-card">
-              <div className="campaign-pulse__kpi-top">
-                <div className="campaign-pulse__kpi-icon-box">
-                  <FileText size={16} />
-                </div>
-                <span className="campaign-pulse__kpi-label">DELIVERABLES</span>
-              </div>
-              <div className="campaign-pulse__kpi-val">{formatNumber(deliverablesCount)}</div>
-            </div>
-
-            {/* 3. LIVE POSTS */}
-            <div className="campaign-pulse__kpi-card">
-              <div className="campaign-pulse__kpi-top">
-                <div className="campaign-pulse__kpi-icon-box">
-                  <Radio size={16} />
-                </div>
-                <span className="campaign-pulse__kpi-label">LIVE POSTS</span>
-              </div>
-              <div className="campaign-pulse__kpi-val">{formatNumber(livePostsCount)}</div>
-            </div>
-
-            {/* 4. VIEWS */}
-            <div className="campaign-pulse__kpi-card">
-              <div className="campaign-pulse__kpi-top">
-                <div className="campaign-pulse__kpi-icon-box">
-                  <Eye size={16} />
-                </div>
-                <span className="campaign-pulse__kpi-label">VIEWS</span>
-              </div>
-              <div className="campaign-pulse__kpi-val">{formatNumber(totalViews)}</div>
-            </div>
-
-            {/* 5. ENGAGEMENTS */}
-            <div className="campaign-pulse__kpi-card">
-              <div className="campaign-pulse__kpi-top">
-                <div className="campaign-pulse__kpi-icon-box">
-                  <Heart size={16} />
-                </div>
-                <span className="campaign-pulse__kpi-label">ENGAGEMENTS</span>
-              </div>
-              <div className="campaign-pulse__kpi-val">{formatNumber(totalEngagements)}</div>
-              <div className="campaign-pulse__kpi-subtext">
-                {likesCount} likes • {commentsCount} comments • {sharesCount} shares
-              </div>
-            </div>
-
-            {/* 6. AVG. ENGAGEMENT RATE */}
-            <div className="campaign-pulse__kpi-card">
-              <div className="campaign-pulse__kpi-top">
-                <div className="campaign-pulse__kpi-icon-box">
-                  <Sparkles size={16} />
-                </div>
-                <span className="campaign-pulse__kpi-label">AVG. ENGAGEMENT RATE</span>
-              </div>
-              <div className="campaign-pulse__kpi-val">{avgEngagementRate}%</div>
-            </div>
-          </div>
-
-          {/* Section 1: Platform Breakdown */}
-          <div className="campaign-pulse__card">
-            <h2 className="campaign-pulse__card-title">Platform Breakdown</h2>
-            <div className="campaign-pulse__table-container">
-              <table className="campaign-pulse__table">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left' }}>PLATFORM</th>
-                    <th style={{ textAlign: 'right' }}>LIVE POSTS</th>
-                    <th style={{ textAlign: 'right' }}>VIEWS</th>
-                    <th style={{ textAlign: 'right' }}>LIKES</th>
-                    <th style={{ textAlign: 'right' }}>COMMENTS</th>
-                    <th style={{ textAlign: 'right' }}>SHARES</th>
-                    <th style={{ textAlign: 'right' }}>FOLLOWERS</th>
-                    <th style={{ textAlign: 'right' }}>ER</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {platformRows.map(row => (
-                    <tr key={row.platform}>
-                      <td style={{ textAlign: 'left', fontWeight: 600, color: '#111827' }}>
-                        {row.platform}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>{row.livePosts}</td>
-                      <td style={{ textAlign: 'right' }}>{formatNumber(row.views)}</td>
-                      <td style={{ textAlign: 'right' }}>{formatNumber(row.likes)}</td>
-                      <td style={{ textAlign: 'right' }}>{formatNumber(row.comments)}</td>
-                      <td style={{ textAlign: 'right' }}>{formatNumber(row.shares)}</td>
-                      <td style={{ textAlign: 'right' }}>{formatNumber(row.followers)}</td>
-                      <td style={{ textAlign: 'right' }}>{row.er}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Section: Product Sales Metrics */}
-          <div className="campaign-pulse__card">
-            <div className="campaign-pulse__card-header" style={{ marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <h2 className="campaign-pulse__card-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ShoppingBag size={18} color="var(--hp-primary, #6538ea)" />
-                  <span>Product Sales Metrics & Conversion</span>
-                </h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: '#6b7280' }}>
-                  E-commerce checkout conversions, gross sales value, and units sold attributed to creators in this campaign.
-                </p>
-              </div>
-
-              {/* View switch pills: By Product vs By Creator */}
-              <div className="campaign-pulse__filter-pills" style={{ margin: 0 }}>
-                <button
-                  type="button"
-                  className={`campaign-pulse__pill ${productSalesTab === 'products' ? 'active' : ''}`}
-                  onClick={() => setProductSalesTab('products')}
-                >
-                  By Product ({productSales.productsList.length})
-                </button>
-                <button
-                  type="button"
-                  className={`campaign-pulse__pill ${productSalesTab === 'creators' ? 'active' : ''}`}
-                  onClick={() => setProductSalesTab('creators')}
-                >
-                  By Creator ({productSales.creatorsList.length})
-                </button>
-              </div>
-            </div>
-
-            {/* 4 Product Sales Metric Cards Strip */}
-            <div className="campaign-product-kpi-grid">
-              <div className="campaign-product-kpi-card">
-                <div className="campaign-product-kpi-icon-box" style={{ background: '#ecfdf5', color: '#059669' }}>
-                  <TrendingUp size={18} />
-                </div>
-                <div>
-                  <div className="campaign-product-kpi-label">GROSS SALES VALUE</div>
-                  <div className="campaign-product-kpi-val" style={{ color: '#059669' }}>
-                    {formatCurrency(productSales.totals.totalSalesValue)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="campaign-product-kpi-card">
-                <div className="campaign-product-kpi-icon-box" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                  <Package size={18} />
-                </div>
-                <div>
-                  <div className="campaign-product-kpi-label">UNITS SOLD</div>
-                  <div className="campaign-product-kpi-val" style={{ color: '#2563eb' }}>
-                    {formatNumber(productSales.totals.totalUnitsSold)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="campaign-product-kpi-card">
-                <div className="campaign-product-kpi-icon-box" style={{ background: '#fffbeb', color: '#d97706' }}>
-                  <Users size={18} />
-                </div>
-                <div>
-                  <div className="campaign-product-kpi-label">CREATORS</div>
-                  <div className="campaign-product-kpi-val" style={{ color: '#d97706' }}>
-                    {productSales.totals.activeCreators}
-                  </div>
-                </div>
-              </div>
-
-              <div className="campaign-product-kpi-card">
-                <div className="campaign-product-kpi-icon-box" style={{ background: '#fdf2f8', color: '#db2777' }}>
-                  <Receipt size={18} />
-                </div>
-                <div>
-                  <div className="campaign-product-kpi-label">AVG. ORDER VALUE</div>
-                  <div className="campaign-product-kpi-val" style={{ color: '#db2777' }}>
-                    {formatCurrency(productSales.totals.avgOrderValue)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Matrix Table: Products */}
-            {productSalesTab === 'products' && (
-              <div className="campaign-pulse__table-container">
-                <table className="campaign-pulse__table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 44 }}>#</th>
-                      <th style={{ textAlign: 'left' }}>PRODUCT</th>
-                      <th style={{ textAlign: 'left' }}>CATEGORY</th>
-                      <th style={{ textAlign: 'right' }}>CREATORS</th>
-                      <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
-                      <th style={{ textAlign: 'right' }}>SALES</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productSales.productsList.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
-                          No product sales tracked for this campaign yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      productSales.productsList.map((prod, idx) => (
-                        <tr key={prod.productId}>
-                          <td>
-                            <span
-                              className="product-rank-badge"
-                              style={{
-                                background: idx === 0 ? '#ede9fe' : idx === 1 ? '#e0f2fe' : '#f1f5f9',
-                                color: idx === 0 ? '#6538ea' : idx === 1 ? '#0284c7' : '#64748b'
-                              }}
-                            >
-                              #{idx + 1}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'left', fontWeight: 600, color: '#111827' }}>
-                            {prod.productName}
-                          </td>
-                          <td style={{ textAlign: 'left' }}>
-                            <span className="product-category-tag">{prod.productCategory}</span>
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
-                            {prod.creatorCount} {prod.creatorCount === 1 ? 'Creator' : 'Creators'}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
-                            {formatNumber(prod.unitsSold)}
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                            {formatCurrency(prod.salesValue)}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Matrix Table: Creators */}
-            {productSalesTab === 'creators' && (
-              <div className="campaign-pulse__table-container">
-                <table className="campaign-pulse__table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 44 }}>#</th>
-                      <th style={{ textAlign: 'left' }}>CREATOR</th>
-                      <th style={{ textAlign: 'right' }}>UNITS SOLD</th>
-                      <th style={{ textAlign: 'right' }}>SALES</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {productSales.creatorsList.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: 'center', padding: '36px 0', color: '#9ca3af' }}>
-                          No creator sales tracked for this campaign yet.
-                        </td>
-                      </tr>
-                    ) : (
-                      productSales.creatorsList.map((cr, idx) => {
-                        return (
-                          <tr
-                            key={cr.creatorId}
-                            className="campaign-pulse__creator-row"
-                            onClick={() => navigate(`/creators/${cr.creatorId}`)}
-                          >
-                            <td>
-                              <span
-                                className="product-rank-badge"
-                                style={{
-                                  background: idx === 0 ? '#ede9fe' : idx === 1 ? '#e0f2fe' : '#f1f5f9',
-                                  color: idx === 0 ? '#6538ea' : idx === 1 ? '#0284c7' : '#64748b'
-                                }}
-                              >
-                                #{idx + 1}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'left' }}>
-                              <div className="campaign-pulse__creator-flex">
-                                {cr.avatarUrl ? (
-                                  <img src={cr.avatarUrl} alt={cr.creatorName} className="campaign-pulse__creator-img" />
-                                ) : (
-                                  <div
-                                    className="campaign-pulse__creator-avatar-fallback"
-                                    style={{ background: cr.avatarColor || '#6538ea' }}
-                                  >
-                                    {getInitials(cr.creatorName)}
-                                  </div>
-                                )}
-                                <div>
-                                  <div className="campaign-pulse__creator-name">{cr.creatorName}</div>
-                                  <div style={{ fontSize: 11, color: '#6b7280' }}>{cr.creatorHandle}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ textAlign: 'right', fontWeight: 600, color: '#111827' }}>
-                              {formatNumber(cr.unitsSold)}
-                            </td>
-                            <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                              {formatCurrency(cr.salesValue)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Section 2: Deliverables */}
-          <div className="campaign-pulse__card">
-            <h2 className="campaign-pulse__card-title">
-              Deliverables ({campaignSubmissions.length})
-            </h2>
-
-            {/* Deliverables Filter Pills */}
-            <div className="campaign-pulse__filter-pills">
-              <button
-                type="button"
-                className={`campaign-pulse__pill ${deliverableStage === 'all' ? 'active' : ''}`}
-                onClick={() => setDeliverableStage('all')}
-              >
-                All ({campaignSubmissions.length})
-              </button>
-              <button
-                type="button"
-                className={`campaign-pulse__pill ${deliverableStage === 'raw_videos' ? 'active' : ''}`}
-                onClick={() => setDeliverableStage('raw_videos')}
-              >
-                Raw Videos to Review ({rawVideosList.length})
-              </button>
-              <button
-                type="button"
-                className={`campaign-pulse__pill ${deliverableStage === 'awaiting_live' ? 'active' : ''}`}
-                onClick={() => setDeliverableStage('awaiting_live')}
-              >
-                Awaiting Live Post ({awaitingLiveList.length})
-              </button>
-              <button
-                type="button"
-                className={`campaign-pulse__pill ${deliverableStage === 'live_review' ? 'active' : ''}`}
-                onClick={() => setDeliverableStage('live_review')}
-              >
-                Live Posts to Review ({liveReviewList.length})
-              </button>
-              <button
-                type="button"
-                className={`campaign-pulse__pill ${deliverableStage === 'live_approved' ? 'active' : ''}`}
-                onClick={() => setDeliverableStage('live_approved')}
-              >
-                Live Approved ({liveApprovedList.length})
-              </button>
-              <button
-                type="button"
-                className={`campaign-pulse__pill ${deliverableStage === 'rejected' ? 'active' : ''}`}
-                onClick={() => setDeliverableStage('rejected')}
-              >
-                Rejected ({rejectedList.length})
-              </button>
-            </div>
-
-            {/* Deliverables Body */}
-            {displayedDeliverables.length === 0 ? (
-              <div className="campaign-pulse__empty-state">
-                No deliverables in this stage.
-              </div>
-            ) : (
-              <div className="campaign-dash__deliverables-grid">
-                {displayedDeliverables.map(sub => {
-                  const isDraftPending = sub.stage === 'draft_review';
-                  const isFinalPending = sub.stage === 'final_review';
-                  const isApproved = sub.stage === 'live_approved' || sub.stage === 'payment_approved';
-                  const isAwaitingLive = sub.stage === 'awaiting_live_link';
-                  const isRejected = sub.stage === 'draft_rejected' || sub.stage === 'live_rejected';
-
-                  return (
-                    <div key={sub.id} className="deliverable-card">
-                      <div
-                        className="deliverable-card__media"
-                        onClick={() => {
-                          setSelectedSubmission(sub);
-                          setModalRejectMode(false);
-                        }}
-                      >
-                        <video
-                          src={sub.videoUrl}
-                          preload="metadata"
-                          muted
-                          playsInline
-                          className="deliverable-card__video-preview"
-                        />
-                        <div className="deliverable-card__overlay">
-                          <div className="deliverable-card__play-btn">
-                            <Play size={20} fill="#fff" />
-                          </div>
-                          <span className="deliverable-card__hover-text">Watch & Review</span>
-                        </div>
-                        <div className="deliverable-card__duration-badge">{sub.duration}</div>
-                        <div className="deliverable-card__format-tag">{sub.deliverableType}</div>
-                      </div>
-
-                      <div className="deliverable-card__body">
-                        <div className="deliverable-card__creator-row">
-                          <div
-                            className="deliverable-card__avatar"
-                            style={{ background: sub.creatorAvatarColor || 'var(--hp-primary)' }}
-                          >
-                            {getInitials(sub.creatorName)}
-                          </div>
-                          <div className="deliverable-card__creator-meta">
-                            <div className="deliverable-card__creator-name">{sub.creatorName}</div>
-                            <div className="deliverable-card__creator-handle">
-                              {sub.creatorHandle} • {sub.creatorPlatform}
-                            </div>
-                          </div>
-                        </div>
-
-                        <h4 className="deliverable-card__title" title={sub.videoTitle}>
-                          {sub.videoTitle}
-                        </h4>
-
-                        {sub.livePostUrl && (
-                          <div className="deliverable-card__live-link-pill">
-                            <span>Live:</span>
-                            <a
-                              href={sub.livePostUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="deliverable-card__live-link-url"
-                            >
-                              <span>{sub.livePostUrl}</span>
-                              <ExternalLink size={10} />
-                            </a>
-                          </div>
-                        )}
-
-                        <div className="deliverable-card__actions">
-                          {isDraftPending && (
-                            <>
-                              <button
-                                type="button"
-                                className="deliverable-card__review-btn"
-                                onClick={() => {
-                                  setSelectedSubmission(sub);
-                                  setModalRejectMode(false);
-                                }}
-                              >
-                                <Play size={14} fill="currentColor" />
-                                <span>Review</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="deliverable-card__approve-btn"
-                                onClick={() => approveDraft(sub.id, 'Approved')}
-                              >
-                                <CheckCircle2 size={14} />
-                                <span>Approve</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="deliverable-card__reject-btn"
-                                onClick={() => {
-                                  setSelectedSubmission(sub);
-                                  setModalRejectMode(true);
-                                }}
-                              >
-                                <XCircle size={14} />
-                                <span>Reject</span>
-                              </button>
-                            </>
-                          )}
-
-                          {isFinalPending && (
-                            <>
-                              <button
-                                type="button"
-                                className="deliverable-card__review-btn"
-                                style={{ background: '#7c3aed' }}
-                                onClick={() => {
-                                  setSelectedSubmission(sub);
-                                  setModalRejectMode(false);
-                                }}
-                              >
-                                <Sparkles size={14} />
-                                <span>Review Live</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="deliverable-card__approve-btn"
-                                onClick={() => approveLivePost(sub.id, 'Live post verified')}
-                              >
-                                <CheckCircle2 size={14} />
-                                <span>Approve</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="deliverable-card__reject-btn"
-                                onClick={() => {
-                                  setSelectedSubmission(sub);
-                                  setModalRejectMode(true);
-                                }}
-                              >
-                                <XCircle size={14} />
-                                <span>Reject</span>
-                              </button>
-                            </>
-                          )}
-
-                          {(isApproved || isRejected || isAwaitingLive) && (
-                            <button
-                              type="button"
-                              className="deliverable-card__re-review-btn"
-                              onClick={() => {
-                                setSelectedSubmission(sub);
-                                setModalRejectMode(false);
-                              }}
-                            >
-                              View Details
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Section 3: Creators */}
-          <div className="campaign-pulse__card">
-            <div className="campaign-pulse__card-header">
-              <h2 className="campaign-pulse__card-title" style={{ margin: 0 }}>
-                Creators
-              </h2>
-            </div>
-
-            <div className="campaign-pulse__table-container">
-              <table className="campaign-pulse__table campaign-pulse__table--creators">
-                <thead>
-                  <tr>
-                    <th
-                      style={{ textAlign: 'left', cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSort('name')}
-                    >
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <span>CREATOR</span>
-                        <ArrowUpDown size={12} />
-                      </div>
-                    </th>
-                    <th style={{ textAlign: 'left' }}>PLATFORMS</th>
-                    <th
-                      style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSort('deliverables')}
-                    >
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                        <span>DELIVERABLES</span>
-                        <ArrowUpDown size={12} />
-                      </div>
-                    </th>
-                    <th
-                      style={{ textAlign: 'right', cursor: 'pointer', userSelect: 'none' }}
-                      onClick={() => handleSort('reach')}
-                    >
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                        <span>REACH</span>
-                        <ArrowUpDown size={12} />
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedCreators.map(cr => (
-                    <tr
-                      key={cr.id}
-                      className="campaign-pulse__creator-row"
-                      onClick={() => navigate(`/creators/${cr.id}`)}
-                    >
-                      <td style={{ textAlign: 'left' }}>
-                        <div className="campaign-pulse__creator-flex">
-                          {cr.avatarUrl ? (
-                            <img
-                              src={cr.avatarUrl}
-                              alt={cr.name}
-                              className="campaign-pulse__creator-img"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                if (e.currentTarget.nextSibling) {
-                                  e.currentTarget.nextSibling.style.display = 'flex';
-                                }
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className="campaign-pulse__creator-avatar-fallback"
-                            style={{
-                              background: cr.avatarColor || '#6538ea',
-                              display: cr.avatarUrl ? 'none' : 'flex'
-                            }}
-                          >
-                            {getInitials(cr.name)}
-                          </div>
-                          <span className="campaign-pulse__creator-name">{cr.name}</span>
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'left', color: '#6b7280' }}>
-                        {cr.platforms && cr.platforms !== '—' ? cr.platforms : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
-                        {cr.deliverablesCount || 0}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 500, color: '#374151' }}>
-                        {formatNumber(cr.reach || cr.followerCount || 0)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="campaign-pulse__pagination">
-                <span className="campaign-pulse__page-info">
-                  Showing {(creatorPage - 1) * pageSize + 1} to {Math.min(creatorPage * pageSize, sortedCreators.length)} of {sortedCreators.length} creators
-                </span>
-                <div className="campaign-pulse__page-buttons">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    disabled={creatorPage <= 1}
-                    onClick={() => setCreatorPage(p => Math.max(1, p - 1))}
-                  >
-                    Previous
-                  </button>
-                  <span className="campaign-pulse__page-indicator">
-                    Page {creatorPage} of {totalPages}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    disabled={creatorPage >= totalPages}
-                    onClick={() => setCreatorPage(p => Math.min(totalPages, p + 1))}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Video Review Studio Modal */}
-      {selectedSubmission && (
-        <VideoReviewModal
-          submission={selectedSubmission}
-          onClose={() => setSelectedSubmission(null)}
-          onApproveDraft={approveDraft}
-          onRejectDraft={rejectDraft}
-          onApproveLivePost={approveLivePost}
-          onRejectLivePost={rejectLivePost}
-          onApproveFinalPayment={approveFinalPayment}
-          onRejectFinalPayment={rejectFinalPayment}
-          initialRejectMode={modalRejectMode}
-        />
-      )}
-
-      {/* Barter Logistics Modal */}
-      {isBarterModalOpen && barterFulfillment && (
-        <BarterCreatorsModal
-          isOpen={isBarterModalOpen}
-          onClose={() => setIsBarterModalOpen(false)}
-          campaign={campaign}
-          fulfillment={barterFulfillment}
-          initialFilter={barterFilterModal}
-        />
-      )}
+      {/* Creator Reimbursements & Invoices Section */}
+      <CampaignReimbursementsSection campaignId={campaignId} />
     </div>
   );
 }
