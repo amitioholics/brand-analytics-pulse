@@ -5,6 +5,7 @@ import {
 import { useInvoices } from '../context/InvoiceContext';
 import { formatCurrency } from '../utils/formatters';
 import InvoiceDetailModal from '../components/invoices/InvoiceDetailModal';
+import InvoiceExportButton from '../components/invoices/InvoiceExportButton';
 import './InvoicesPage.css';
 
 export default function InvoicesPage() {
@@ -153,14 +154,25 @@ export default function InvoicesPage() {
           </button>
         </div>
 
-        <div className="invoices-page__search-box">
-          <Search size={14} className="invoices-page__search-icon" />
-          <input
-            type="text"
-            placeholder="Search by creator name, order ID, invoice"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="invoices-page__search-input"
+        <div className="invoices-page__search-filter-wrap">
+          <div className="invoices-page__search-box">
+            <Search size={14} className="invoices-page__search-icon" />
+            <input
+              type="text"
+              placeholder="Search by creator name, order ID, invoice"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="invoices-page__search-input"
+            />
+          </div>
+
+          <InvoiceExportButton
+            invoices={invoices}
+            filteredInvoices={filteredInvoices}
+            campaignName="All Campaigns"
+            statusFilter={statusTab}
+            buttonText="Export"
+            align="right"
           />
         </div>
       </div>

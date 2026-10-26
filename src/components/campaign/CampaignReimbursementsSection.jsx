@@ -5,6 +5,7 @@ import {
 import { useInvoices } from '../../context/InvoiceContext';
 import { formatCurrency } from '../../utils/formatters';
 import InvoiceDetailModal from '../invoices/InvoiceDetailModal';
+import InvoiceExportButton from '../invoices/InvoiceExportButton';
 import './CampaignReimbursementsSection.css';
 
 export default function CampaignReimbursementsSection({ campaignId }) {
@@ -250,14 +251,25 @@ export default function CampaignReimbursementsSection({ campaignId }) {
           </button>
         </div>
 
-        <div className="campaign-reimb__search-box">
-          <Search size={14} className="campaign-reimb__search-icon" />
-          <input
-            type="text"
-            placeholder="Search by creator name, order ID, invoice..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="campaign-reimb__search-input"
+        <div className="campaign-reimb__controls-right">
+          <div className="campaign-reimb__search-box">
+            <Search size={14} className="campaign-reimb__search-icon" />
+            <input
+              type="text"
+              placeholder="Search by creator name, order ID, invoice..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="campaign-reimb__search-input"
+            />
+          </div>
+
+          <InvoiceExportButton
+            invoices={campaignInvoices}
+            filteredInvoices={filteredInvoices}
+            campaignName={campaignInvoices[0]?.campaignName || 'HaulPack x Amazon Head & Shoulders'}
+            statusFilter={statusTab}
+            buttonText="Export"
+            align="right"
           />
         </div>
       </div>

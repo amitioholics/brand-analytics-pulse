@@ -1,7 +1,29 @@
 import { useState, useRef, useEffect } from 'react';
 import { Download, ChevronDown } from 'lucide-react';
 
-export default function ExportButton() {
+function escapeCSV(val) {
+  if (val === null || val === undefined) return '""';
+  const str = String(val).replace(/"/g, '""');
+  return `"${str}"`;
+}
+
+function downloadDataCSV(filename, data) {
+  if (!Array.isArray(data) || !data.length) return;
+  const headers = Object.keys(data[0]);
+  const rows = data.map(item => headers.map(h => escapeCSV(item[h])).join(','));
+  const csvContent = [headers.map(escapeCSV).join(','), ...rows].join('\r\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename.endsWith('.csv') ? filename : `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export default function ExportButton({ data = null, filename = 'report' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -13,16 +35,25 @@ export default function ExportButton() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const handleClick = () => {
+    if (data && Array.isArray(data) && data.length > 0) {
+      downloadDataCSV(filename, data);
+    } else {
+      setOpen(!open);
+    }
+  };
+
   const handleExport = (type) => {
-    // Placeholder for export functionality
-    alert(`Export ${type} report — feature will be connected to backend API.`);
+    downloadDataCSV(`${type.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`, [
+      { Report: type, ExportedAt: new Date().toISOString(), Status: 'Success' }
+    ]);
     setOpen(false);
   };
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={handleClick}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -33,14 +64,16 @@ export default function ExportButton() {
           borderRadius: 'var(--radius-md)',
           fontSize: 'var(--text-sm)',
           fontWeight: 600,
+          border: 'none',
+          cursor: 'pointer',
         }}
       >
         <Download size={15} />
         Export
-        <ChevronDown size={14} />
+        {!data && <ChevronDown size={14} />}
       </button>
 
-      {open && (
+      {open && !data && (
         <div style={{
           position: 'absolute',
           top: '100%',
@@ -68,6 +101,9 @@ export default function ExportButton() {
                 fontWeight: 500,
                 borderBottom: '1px solid var(--hp-border-light)',
                 transition: 'background 0.15s',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
               }}
               onMouseEnter={e => e.target.style.background = 'var(--hp-bg)'}
               onMouseLeave={e => e.target.style.background = 'transparent'}

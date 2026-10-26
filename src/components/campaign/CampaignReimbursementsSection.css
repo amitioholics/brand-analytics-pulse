@@ -220,6 +220,12 @@
   color: #ffffff;
 }
 
+.campaign-reimb__controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .campaign-reimb__search-box {
   display: flex;
   align-items: center;
@@ -228,7 +234,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 7px 12px;
-  width: 320px;
+  width: 300px;
   transition: border-color 0.15s ease;
 }
 
