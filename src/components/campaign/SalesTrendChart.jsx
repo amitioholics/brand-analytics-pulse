@@ -1,14 +1,12 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
-  TrendingUp, RefreshCw, CheckCircle2, Check, Zap, Package, DollarSign
+  TrendingUp, Package, DollarSign
 } from 'lucide-react';
 import {
-  getSalesPipelineTimeline,
-  getSalesPipelineInfo,
-  syncSalesPipeline
+  getSalesPipelineTimeline
 } from '../../data/productSales';
 import { formatCurrency, formatCompactNumber, formatDateShort } from '../../utils/formatters';
 import './SalesTrendChart.css';
@@ -73,17 +71,13 @@ function CustomTooltip({ active, payload, label, selectedMetric }) {
   );
 }
 
-export default function SalesTrendChart({ campaignId = '6ace2b3abe742272b6135d8e', onPipelineSync = null }) {
+export default function SalesTrendChart({ campaignId = '6ace2b3abe742272b6135d8e' }) {
   const [selectedMetric, setSelectedMetric] = useState('sales');
   const [timeFilter, setTimeFilter] = useState('all');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState(() => getSalesPipelineInfo(campaignId));
-  const [toastMessage, setToastMessage] = useState(null);
-  const toastTimeoutRef = useRef(null);
 
   const rawTimeline = useMemo(() => {
     return getSalesPipelineTimeline(campaignId, timeFilter);
-  }, [campaignId, timeFilter, syncStatus.lastSynced]);
+  }, [campaignId, timeFilter]);
 
   const activeMetricConfig = METRIC_TABS.find(m => m.id === selectedMetric) || METRIC_TABS[0];
 
@@ -101,28 +95,9 @@ export default function SalesTrendChart({ campaignId = '6ace2b3abe742272b6135d8e
     }));
   }, [rawTimeline, selectedMetric]);
 
-  const showToast = (msg) => {
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    setToastMessage(msg);
-    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3200);
-  };
-
-  const handleSyncPipeline = () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-
-    setTimeout(() => {
-      const freshInfo = syncSalesPipeline(campaignId);
-      setSyncStatus(freshInfo);
-      setIsSyncing(false);
-      showToast('Sales data pipeline synced with Amazon Commerce feed');
-      if (onPipelineSync) onPipelineSync(freshInfo);
-    }, 750);
-  };
-
   return (
     <div className="sales-trend-box">
-      {/* Header with Pipeline Sync Controls */}
+      {/* Header */}
       <div className="sales-trend-box__header">
         <div className="sales-trend-box__title-wrap">
           <div className="sales-trend-box__title-row">
@@ -134,31 +109,6 @@ export default function SalesTrendChart({ campaignId = '6ace2b3abe742272b6135d8e
           <p className="sales-trend-box__subtitle">
             Daily tracked gross merchandise value (GMV) and product sales velocity attributed to creator storefront links.
           </p>
-        </div>
-
-        <div className="sales-trend-box__sync-wrap">
-          {/* Pipeline Status Indicator */}
-          <div className="sales-trend-pipeline-pill" title="Amazon Commerce Pipeline is actively verified and synced">
-            <span className="sales-trend-pipeline-dot" />
-            <span className="sales-trend-pipeline-text">
-              <strong>Amazon Feed:</strong> Synced
-            </span>
-            <span className="sales-trend-pipeline-time">
-              • Just now
-            </span>
-          </div>
-
-          {/* Sync Button */}
-          <button
-            type="button"
-            className={`sales-trend-sync-btn ${isSyncing ? 'sales-trend-sync-btn--syncing' : ''}`}
-            onClick={handleSyncPipeline}
-            disabled={isSyncing}
-            title="Fetch latest transaction events and sync sales attribution pipeline"
-          >
-            <RefreshCw size={13} className={isSyncing ? 'sales-trend-spin' : ''} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Pipeline'}</span>
-          </button>
         </div>
       </div>
 
@@ -243,17 +193,6 @@ export default function SalesTrendChart({ campaignId = '6ace2b3abe742272b6135d8e
           </AreaChart>
         </ResponsiveContainer>
       </div>
-
-      {/* Floating Toast Notification */}
-      {toastMessage && (
-        <div className="sales-trend-toast" role="status" aria-live="polite">
-          <div className="sales-trend-toast__icon">
-            <Check size={13} strokeWidth={2.5} />
-          </div>
-          <span className="sales-trend-toast__text">{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sales Trend Chart & Pipeline Sync Component Styles
+   Sales Trend Chart Component Styles
    ========================================================================== */
 
 .sales-trend-box {
@@ -61,97 +61,6 @@
   font-size: 12.5px;
   color: #64748b;
   margin: 0;
-}
-
-/* Sync Controls & Pipeline Pill */
-.sales-trend-box__sync-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.sales-trend-pipeline-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 9999px;
-  font-size: 11.5px;
-  color: #334155;
-  user-select: none;
-}
-
-.sales-trend-pipeline-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
-  animation: salesPulseDot 2s infinite ease-in-out;
-}
-
-@keyframes salesPulseDot {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-}
-
-.sales-trend-pipeline-text strong {
-  color: #0f172a;
-}
-
-.sales-trend-pipeline-time {
-  color: #64748b;
-  font-size: 11px;
-}
-
-.sales-trend-sync-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
-  color: #6538ea;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.sales-trend-sync-btn:hover:not(:disabled) {
-  background: #ede9fe;
-  border-color: #c4b5fd;
-  color: #5b21b6;
-}
-
-.sales-trend-sync-btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.sales-trend-sync-btn--syncing {
-  opacity: 0.75;
-  cursor: wait;
-}
-
-.sales-trend-spin {
-  animation: salesSpin 0.75s linear infinite;
-}
-
-@keyframes salesSpin {
-  100% {
-    transform: rotate(360deg);
-  }
 }
 
 /* Controls */
@@ -282,50 +191,3 @@
     align-items: flex-start;
   }
 }
-
-/* Toast */
-.sales-trend-toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: #0f172a;
-  color: #ffffff;
-  padding: 10px 16px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 12.5px;
-  font-weight: 500;
-  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.35);
-  z-index: 10001;
-  animation: salesToastIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes salesToastIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.sales-trend-toast__icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #10b981;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sales-trend-toast__text {
-  letter-spacing: -0.01em;
-}
-
