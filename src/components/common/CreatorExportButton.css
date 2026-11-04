@@ -1,0 +1,112 @@
+/* ==========================================================================
+   Creator Export Button Styles (Direct CSV Download)
+   ========================================================================== */
+
+.cr-export-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cr-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.cr-export-btn--primary {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.cr-export-btn--primary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #6538ea;
+}
+
+.cr-export-btn--primary:hover .cr-export-btn__icon {
+  color: #6538ea;
+}
+
+.cr-export-btn--secondary {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.cr-export-btn--secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.cr-export-btn:active {
+  transform: scale(0.98);
+}
+
+.cr-export-btn__icon {
+  color: #6538ea;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.cr-export-btn__text {
+  letter-spacing: -0.01em;
+}
+
+/* Floating Toast Notification */
+.cr-export-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.35), 0 4px 10px -2px rgba(15, 23, 42, 0.2);
+  z-index: 10001;
+  animation: crToastSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes crToastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cr-export-toast__icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cr-export-toast__text {
+  letter-spacing: -0.01em;
+}
+

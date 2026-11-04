@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import { getProductSalesKPIs, getProductWiseSales } from '../data/productSales';
+import SalesTrendChart from '../components/campaign/SalesTrendChart';
 import './Analytics.css';
 
 const PLATFORM_COLORS = {
@@ -230,6 +231,9 @@ export default function Analytics() {
               </div>
             </div>
           </div>
+
+          {/* Sales Trend & Pipeline Velocity Chart */}
+          <SalesTrendChart campaignId={portalCampaigns[0]?.id || '6ace2b3abe742272b6135d8e'} />
 
           {/* Overall Product Sales Overview Table */}
           <div className="analytics__card">

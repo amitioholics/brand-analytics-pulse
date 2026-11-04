@@ -7,9 +7,13 @@
 import { getContentForCampaign, getContentForCreator, getAllContentForCreator } from './content.js';
 import { getCreatorsForCampaign, getCampaignsForCreator } from './creators.js';
 import { getCampaignById } from './campaigns.js';
+import { getProductSalesForCampaign, getSalesPipelineTimeline } from './productSales.js';
 
 export function getCampaignMetrics(campaignId) {
   const targetId = campaignId || '6ace2b3abe742272b6135d8e';
+  const salesData = getProductSalesForCampaign(targetId);
+  const totalSales = salesData?.totals?.totalSalesValue || 130675;
+  const totalOrders = salesData?.totals?.totalOrders || 261;
 
   return {
     campaignId: targetId,
@@ -26,9 +30,9 @@ export function getCampaignMetrics(campaignId) {
     likes: 0,
     comments: 0,
     shares: 0,
-    sales: 0,
+    sales: totalSales,
     rewards: 0,
-    orders: 0,
+    orders: totalOrders,
     avgER: '0.0',
   };
 }
@@ -74,6 +78,15 @@ export function getPlatformBreakdown(campaignId) {
 }
 
 export function getCampaignTimeSeries(campaignId, metric = 'views', days = null) {
+  if (metric === 'sales') {
+    const pipelineTimeline = getSalesPipelineTimeline(campaignId, days);
+    return pipelineTimeline.map(item => ({
+      date: item.date,
+      value: item.sales,
+      cumulative: item.cumulativeSales,
+    }));
+  }
+
   const content = getContentForCampaign(campaignId);
   if (!content.length) return [];
 

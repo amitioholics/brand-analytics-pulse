@@ -33,6 +33,28 @@ export default function CreatorDetail() {
   const creator = getCreatorById(creatorId);
   const relation = getCampaignCreatorRelation(campaignId, creatorId);
 
+  const metrics = useMemo(() => getCreatorCampaignMetrics(campaignId, creatorId), [campaignId, creatorId]);
+  const content = useMemo(() => getContentForCreator(campaignId, creatorId), [campaignId, creatorId]);
+  const salesAnalytics = useMemo(() => getCreatorSalesAnalytics(campaignId, creatorId), [campaignId, creatorId]);
+
+  // Sort content
+  const sortedContent = useMemo(() => {
+    return [...content].sort((a, b) => b[contentSort] - a[contentSort]);
+  }, [content, contentSort]);
+
+  // Build chart data with all metrics per date
+  const chartData = useMemo(() => {
+    const raw = {};
+    content.forEach(c => {
+      const d = c.publishedAt;
+      if (!raw[d]) raw[d] = { date: d, views: 0, clicks: 0, sales: 0 };
+      raw[d].views += c.views;
+      raw[d].clicks += c.clicks;
+      raw[d].sales += c.sales;
+    });
+    return Object.values(raw).sort((a, b) => a.date.localeCompare(b.date));
+  }, [content]);
+
   if (!campaign || !creator || !relation) {
     return (
       <div className="creator-detail fade-in">
@@ -40,28 +62,6 @@ export default function CreatorDetail() {
       </div>
     );
   }
-
-  const metrics = getCreatorCampaignMetrics(campaignId, creatorId);
-  const content = getContentForCreator(campaignId, creatorId);
-  const salesAnalytics = getCreatorSalesAnalytics(campaignId, creatorId);
-
-
-
-  // Build chart data with all metrics per date
-  const chartDataRaw = {};
-  content.forEach(c => {
-    const d = c.publishedAt;
-    if (!chartDataRaw[d]) chartDataRaw[d] = { date: d, views: 0, clicks: 0, sales: 0 };
-    chartDataRaw[d].views += c.views;
-    chartDataRaw[d].clicks += c.clicks;
-    chartDataRaw[d].sales += c.sales;
-  });
-  const chartData = Object.values(chartDataRaw).sort((a, b) => a.date.localeCompare(b.date));
-
-  // Sort content
-  const sortedContent = useMemo(() => {
-    return [...content].sort((a, b) => b[contentSort] - a[contentSort]);
-  }, [content, contentSort]);
 
   const kpiCards = [
     { label: 'Total Content', value: formatNumber(metrics.contentCount), icon: FileVideo, color: '#3b82f6' },

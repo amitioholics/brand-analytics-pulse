@@ -10,6 +10,8 @@ import { getProductSalesForCampaign } from '../data/productSales';
 import { formatDate, formatDateRange, formatNumber, formatCompactNumber, formatCurrency, getInitials } from '../utils/formatters';
 import CampaignVideoDeliverables from '../components/campaign/CampaignVideoDeliverables';
 import CampaignReimbursementsSection from '../components/campaign/CampaignReimbursementsSection';
+import SalesTrendChart from '../components/campaign/SalesTrendChart';
+import CreatorExportButton from '../components/common/CreatorExportButton';
 import PGLogo from '../components/common/PGLogo';
 import './CampaignDashboard.css';
 
@@ -367,6 +369,12 @@ export default function CampaignDashboard() {
                   </button>
                 )}
               </div>
+              <CreatorExportButton
+                creators={campaignSalesData.creatorsList}
+                filteredCreators={searchQuery.trim() ? sortedSalesCreators : null}
+                campaignName={campaign.name}
+                buttonText={searchQuery.trim() ? `Download Filtered (${sortedSalesCreators.length})` : 'Download Creator Data'}
+              />
             </div>
           </div>
 
@@ -420,6 +428,9 @@ export default function CampaignDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Interactive Sales Growth Trend & Pipeline Velocity */}
+          <SalesTrendChart campaignId={campaignId} />
 
           {/* Data Table */}
           <div className="campaign-pulse__table-container">

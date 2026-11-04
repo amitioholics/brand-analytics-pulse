@@ -7,6 +7,7 @@ import { formatNumber, formatCurrency, formatCompactNumber, getInitials } from '
 import SearchBar from '../components/common/SearchBar';
 import FilterDropdown from '../components/common/FilterDropdown';
 import DataTable from '../components/common/DataTable';
+import CreatorExportButton from '../components/common/CreatorExportButton';
 import { Users, Layers, FileVideo, BarChart2, Package, TrendingUp } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import './Creators.css';
@@ -379,6 +380,12 @@ export default function Creators() {
             value={campaignFilter}
             onChange={setCampaignFilter}
             options={campaignOptions}
+          />
+          <CreatorExportButton
+            creators={enrichedCreators}
+            filteredCreators={search || platformFilter || campaignFilter ? filtered : null}
+            campaignName="Pulse_All_Creators"
+            buttonText={search || platformFilter || campaignFilter ? `Download Filtered (${filtered.length})` : 'Download Creator Data'}
           />
         </div>
       </div>

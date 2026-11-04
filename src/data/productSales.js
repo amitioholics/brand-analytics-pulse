@@ -396,3 +396,66 @@ export function getProductSalesPerCreatorMap() {
   });
   return map;
 }
+
+/* ============================================
+   Sales Pipeline Timeline & Sync Infrastructure
+   ============================================ */
+
+export const SALES_PIPELINE_TIMELINE = [
+  { date: '2026-10-13', sales: 8400, units: 17, orders: 17, cumulativeSales: 8400, cumulativeUnits: 17, topCreator: 'Anjali verma' },
+  { date: '2026-10-14', sales: 14200, units: 28, orders: 28, cumulativeSales: 22600, cumulativeUnits: 45, topCreator: 'TheHopeStory' },
+  { date: '2026-10-15', sales: 18900, units: 37, orders: 37, cumulativeSales: 41500, cumulativeUnits: 82, topCreator: 'Anjali verma' },
+  { date: '2026-10-16', sales: 22500, units: 45, orders: 45, cumulativeSales: 64000, cumulativeUnits: 127, topCreator: 'Rashu Thakur' },
+  { date: '2026-10-17', sales: 19800, units: 39, orders: 39, cumulativeSales: 83800, cumulativeUnits: 166, topCreator: 'Shikha Tyagi Vlogs' },
+  { date: '2026-10-18', sales: 15600, units: 31, orders: 31, cumulativeSales: 99400, cumulativeUnits: 197, topCreator: 'TheHopeStory' },
+  { date: '2026-10-19', sales: 12400, units: 25, orders: 25, cumulativeSales: 111800, cumulativeUnits: 222, topCreator: 'Anjali verma' },
+  { date: '2026-10-20', sales: 9875, units: 20, orders: 20, cumulativeSales: 121675, cumulativeUnits: 242, topCreator: 'Pooja kumawat' },
+  { date: '2026-10-21', sales: 5100, units: 11, orders: 11, cumulativeSales: 126775, cumulativeUnits: 253, topCreator: 'bhawna sharma' },
+  { date: '2026-10-22', sales: 2900, units: 6, orders: 6, cumulativeSales: 129675, cumulativeUnits: 259, topCreator: 'Mansi Gupta' },
+  { date: '2026-10-23', sales: 1000, units: 2, orders: 2, cumulativeSales: 130675, cumulativeUnits: 261, topCreator: 'Priyanka' },
+];
+
+let _lastSyncTimestamp = new Date().toISOString();
+
+export function getSalesPipelineTimeline(campaignId, timeFilter = 'all') {
+  let list = [...SALES_PIPELINE_TIMELINE];
+
+  if (timeFilter === '7') {
+    list = list.slice(-7);
+  } else if (timeFilter === '14') {
+    list = list.slice(-14);
+  }
+
+  return list;
+}
+
+export function getSalesPipelineInfo(campaignId) {
+  const campSales = getProductSalesForCampaign(campaignId);
+
+  return {
+    pipelineName: 'Amazon Commerce & Affiliate Storefront Feed',
+    provider: 'Amazon Associates + HaulPack Real-Time Attribution',
+    status: 'Synced',
+    lastSynced: _lastSyncTimestamp,
+    totalOrders: campSales.totals.totalOrders || 261,
+    totalUnitsSold: campSales.totals.totalUnitsSold || 261,
+    totalSalesValue: campSales.totals.totalSalesValue || 130675,
+    activeCreators: campSales.totals.activeCreators || 695,
+    activeProducts: campSales.totals.activeProducts || 6,
+    avgOrderValue: campSales.totals.avgOrderValue || '500.67',
+    attributionHealth: '100% Attributed',
+    syncProtocol: 'Live Webhook + Polling Pipeline',
+    peakDay: {
+      date: '2026-10-16',
+      sales: 22500,
+      units: 45,
+    },
+    avgDailySales: 11880,
+  };
+}
+
+export function syncSalesPipeline(campaignId) {
+  _lastSyncTimestamp = new Date().toISOString();
+  return getSalesPipelineInfo(campaignId);
+}
+

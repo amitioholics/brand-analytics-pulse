@@ -70,17 +70,6 @@ export default function CreatorProfilePage() {
     }
   };
 
-  if (!creator) {
-    return (
-      <div className="campaign-pulse fade-in">
-        <p>Creator not found.</p>
-        <button className="btn btn-secondary" onClick={() => navigate('/campaigns')}>
-          Back to Campaigns
-        </button>
-      </div>
-    );
-  }
-
   // Attributed product sales for this creator
   const attributedSales = useMemo(() => {
     return getProductSalesForCreator(creatorId);
@@ -89,9 +78,9 @@ export default function CreatorProfilePage() {
   // Campaigns participated count & social metrics
   const isBhumi = creatorId === 'cr_bhumi';
   const campaignsCount = 1;
-  const followersCount = isBhumi ? 211000 : (creator.followerCount || 250000);
+  const followersCount = isBhumi ? 211000 : (creator?.followerCount || 250000);
   const livePostsCount = isBhumi ? 0 : approvedLivePosts.length;
-  const reachCount = isBhumi ? 0 : (overallMetrics.views || (approvedLivePosts.length > 0 ? approvedLivePosts[0].views : (creator.views || 0)));
+  const reachCount = isBhumi ? 0 : (overallMetrics.views || (approvedLivePosts.length > 0 ? approvedLivePosts[0].views : (creator?.views || 0)));
   const engagementsCount = isBhumi ? 0 : ((livePostsCount > 0 || reachCount > 0)
     ? (overallMetrics.clicks || Math.round(reachCount * 0.05))
     : 0);
@@ -118,6 +107,17 @@ export default function CreatorProfilePage() {
       }
     ];
   }, [livePostsCount, reachCount, engagementsCount]);
+
+  if (!creator) {
+    return (
+      <div className="campaign-pulse fade-in">
+        <p>Creator not found.</p>
+        <button className="btn btn-secondary" onClick={() => navigate('/campaigns')}>
+          Back to Campaigns
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="campaign-pulse fade-in">
